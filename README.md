@@ -1,50 +1,143 @@
-# Welcome to your Expo app 👋
+# BarCrawl 🍺
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A social app similar to Strava, but for tracking bar crawls! Track your route, count your drinks, and share your night with friends.
 
-## Get started
+## Features
 
-1. Install dependencies
+### 🏠 Feed Page
+- Chronological feed of friends' bar crawls
+- Auto-titled posts (e.g., "[City] Bar Crawl")
+- Interactive route maps with highlighted paths
+- Media carousel showing photos from the crawl
+- Stats display: drinks count, bars hit, miles walked
+- "Cheers" (like) functionality
+- Comments on posts
+- Click on user names or posts to view profiles
 
-   ```bash
-   npm install
-   ```
+### 📸 Camera Tab
+- **Start Crawl**: Begin tracking your bar crawl adventure
+- **Dual Camera View**: Switch between front and back cameras
+- **Quick Drink Buttons**: 
+  - Shot 🥃
+  - Beer 🍺
+  - Cocktail 🍸
+  - Wine 🍷
+  - Seltzer 💧
+- **Live Photo Capture**: Take photos and add them to your crawl
+- **Tap Out**: End your crawl when you're done
+- **Auto-terminate**: Crawls automatically end after 2 hours of inactivity
 
-2. Start the app
+### 👤 Profile Page
+- View all your bar crawls
+- **Drinks Counter**: Track drinks by day, week, month, year, or lifetime
+- Profile stats: followers and friends count
+- **Night Recap**: Slideshow feature with auto-generated captions
+- Each crawl shows:
+  - Route map
+  - Media gallery
+  - Stats (drinks, bars, miles)
 
-   ```bash
-   npx expo start
-   ```
+### 🗺️ Explore Bars
+- Interactive map showing all bars
+- Visited bars highlighted in green
+- Gamified visualization of your bar crawl progress
+- Dark themed map for better visibility
 
-In the output, you'll find options to open the app in a
+### 📍 Location Tracking
+- Real-time GPS tracking during active crawls
+- Automatic route mapping
+- Bar detection when you're near a bar
+- Distance calculation (miles walked)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Tech Stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **React Native** with **Expo**
+- **Expo Router** for navigation
+- **Expo Camera** for photo capture
+- **Expo Location** for GPS tracking
+- **React Native Maps** for map visualization
+- **TypeScript** for type safety
+- **Context API** for state management
 
-## Get a fresh project
+## Installation
 
-When you're ready, run:
-
+1. Install dependencies:
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Start the development server:
+```bash
+npm start
+```
 
-## Learn more
+3. Run on your device:
+- Press `i` for iOS simulator
+- Press `a` for Android emulator
+- Scan QR code with Expo Go app on your phone
 
-To learn more about developing your project with Expo, look at the following resources:
+## Project Structure
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```
+barcrawl/
+├── app/
+│   ├── (tabs)/
+│   │   ├── index.tsx          # Feed screen
+│   │   ├── camera.tsx          # Camera/Crawl screen
+│   │   ├── explore.tsx         # Explore Bars map
+│   │   └── profile.tsx         # User profile
+│   ├── crawl-review.tsx        # Crawl review modal
+│   ├── user/[userId].tsx      # User profile page
+│   └── _layout.tsx            # Root layout
+├── context/
+│   └── AppContext.tsx         # Global app state
+├── types/
+│   └── index.ts               # TypeScript types
+└── components/                # Reusable components
+```
 
-## Join the community
+## MVP Features
 
-Join our community of developers creating universal apps.
+### ✅ Implemented
+- [x] User profile with crawls list
+- [x] Drinks counter (day/week/month/year/lifetime)
+- [x] Feed page with posts from friends
+- [x] Camera tab with start crawl functionality
+- [x] Dual camera view with drink buttons
+- [x] Location tracking and route mapping
+- [x] Bar detection and counting
+- [x] Distance calculation (miles walked)
+- [x] Night recap slideshow with auto-generated captions
+- [x] Cheers (like) and comments on posts
+- [x] Explore bars map with visited bars highlighted
+- [x] Auto-terminate crawl after 2 hours of inactivity
+- [x] Crawl review modal with title, caption, and media selection
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### 🔄 Future Enhancements
+- Backend integration (Supabase/Firebase)
+- User authentication
+- Friend system
+- Real bar/restaurant API integration
+- Push notifications
+- Social sharing
+- Advanced analytics
+- Leaderboards
+- Badges and achievements
+
+## Permissions
+
+The app requires the following permissions:
+- **Camera**: To take photos during bar crawls
+- **Location**: To track your route and detect nearby bars
+
+## Notes
+
+- This is an MVP version with mock data
+- Bar detection uses simplified distance calculations
+- In production, integrate with a real bars/restaurants API
+- Location tracking works best with high accuracy GPS enabled
+- Auto-terminate feature helps prevent forgotten active crawls
+
+## License
+
+MIT
