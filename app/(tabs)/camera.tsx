@@ -1,19 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  Dimensions,
-  Platform,
-} from 'react-native';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '@/context/AppContext';
 import { DrinkType } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
+import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { useRouter } from 'expo-router';
+import React, { useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,7 +57,19 @@ export default function CameraScreen() {
       });
 
       if (photo?.uri) {
-        await addUpdate(photo.uri, selectedDrink || undefined);
+        let finalPhotoUri = photo.uri;
+        
+        // If using front camera, flip the image horizontally to correct mirroring
+        if (facing === 'front') {
+          const manipulated = await ImageManipulator.manipulateAsync(
+            photo.uri,
+            [{ flip: ImageManipulator.FlipType.Horizontal }],
+            { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+          );
+          finalPhotoUri = manipulated.uri;
+        }
+
+        await addUpdate(finalPhotoUri, selectedDrink || undefined);
         setSelectedDrink(null); // Reset drink selection after taking photo
       }
     } catch (error) {
@@ -140,6 +153,7 @@ export default function CameraScreen() {
         ref={cameraRef}
         style={styles.camera}
         facing={facing}
+        mirror={false}
       >
         {/* Top Controls */}
         <View style={styles.topControls}>
@@ -231,7 +245,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF6B35',
     padding: 15,
     borderRadius: 10,
   },
@@ -261,11 +275,16 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   startButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 40,
     paddingVertical: 15,
     borderRadius: 30,
     minWidth: 200,
+    shadowColor: '#F95700',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 6,
   },
   startButtonDisabled: {
     opacity: 0.6,
@@ -286,9 +305,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   drinkButtonsContainer: {
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: 'rgba(62, 39, 35, 0.9)',
     borderRadius: 15,
     padding: 10,
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   drinkingLabel: {
     color: '#fff',
@@ -304,16 +325,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   drinkButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.76)',
+    backgroundColor: 'rgba(26, 26, 26, 0.8)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   drinkButtonActive: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF6B35',
+    borderColor: '#FF6B35',
   },
   drinkButtonText: {
     color: '#fff',
@@ -334,13 +358,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   tapOutButton: {
-    backgroundColor: 'rgba(255,0,0,0.7)',
+    backgroundColor: 'rgba(231, 76, 60, 0.8)',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#E74C3C',
   },
   tapOutText: {
     color: '#fff',
@@ -375,13 +401,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Platform.OS === 'ios' ? 120 : 100,
     right: 15,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(62, 39, 35, 0.9)',
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FF6B35',
   },
   updateIndicatorText: {
-    color: '#fff',
+    color: '#FFF8E7',
     fontSize: 12,
     fontWeight: '600',
   },

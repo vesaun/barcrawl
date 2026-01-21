@@ -33,7 +33,7 @@ export default function UserProfileScreen() {
   if (!user) {
     return (
       <View style={styles.container}>
-        <Text>User not found</Text>
+        <Text style={styles.errorText}>User not found</Text>
       </View>
     );
   }
@@ -78,7 +78,7 @@ export default function UserProfileScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color="#FF6B35" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
         <View style={{ width: 24 }} />
@@ -91,7 +91,7 @@ export default function UserProfileScreen() {
             <Image source={{ uri: user.profilePicture }} style={styles.profilePicture} />
           ) : (
             <View style={styles.profilePicturePlaceholder}>
-              <Ionicons name="person" size={50} color="#666" />
+              <Ionicons name="person" size={50} color="#8B7355" />
             </View>
           )}
           <Text style={styles.username}>{user.username}</Text>
@@ -112,7 +112,7 @@ export default function UserProfileScreen() {
           <Text style={styles.sectionTitle}>Crawls</Text>
           {userCrawls.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="beer-outline" size={48} color="#ccc" />
+              <Ionicons name="beer-outline" size={48} color="#8B7355" />
               <Text style={styles.emptyStateText}>No crawls yet</Text>
             </View>
           ) : (
@@ -129,15 +129,15 @@ export default function UserProfileScreen() {
 
                 <View style={styles.crawlStats}>
                   <View style={styles.crawlStat}>
-                    <Ionicons name="wine" size={16} color="#666" />
-                    <Text style={styles.crawlStatText}>{crawl.drinksCount} drinks</Text>
-                  </View>
-                  <View style={styles.crawlStat}>
-                    <Ionicons name="beer" size={16} color="#666" />
-                    <Text style={styles.crawlStatText}>{crawl.barsHit.length} bars</Text>
-                  </View>
-                  <View style={styles.crawlStat}>
-                    <Ionicons name="walk" size={16} color="#666" />
+                <Ionicons name="wine" size={16} color="#FF6B35" />
+                <Text style={styles.crawlStatText}>{crawl.drinksCount} drinks</Text>
+              </View>
+              <View style={styles.crawlStat}>
+                <Ionicons name="beer" size={16} color="#FF6B35" />
+                <Text style={styles.crawlStatText}>{crawl.barsHit.length} bars</Text>
+              </View>
+              <View style={styles.crawlStat}>
+                <Ionicons name="walk" size={16} color="#FF6B35" />
                     <Text style={styles.crawlStatText}>{crawl.milesWalked.toFixed(2)} mi</Text>
                   </View>
                 </View>
@@ -161,7 +161,7 @@ export default function UserProfileScreen() {
                           latitude: point.latitude,
                           longitude: point.longitude,
                         }))}
-                        strokeColor="#FF6B6B"
+                        strokeColor="#FF6B35"
                         strokeWidth={3}
                       />
                     </MapView>
@@ -194,7 +194,7 @@ export default function UserProfileScreen() {
                   style={styles.recapButton}
                   onPress={() => handleNightRecap(crawl)}
                 >
-                  <Ionicons name="images" size={20} color="#FF6B6B" />
+                  <Ionicons name="images" size={20} color="#FF6B35" />
                   <Text style={styles.recapButtonText}>Night Recap</Text>
                 </TouchableOpacity>
               </View>
@@ -264,7 +264,7 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#2C1810',
   },
   header: {
     flexDirection: 'row',
@@ -274,11 +274,13 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
+    backgroundColor: '#2C1810',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#FFF8E7',
   },
   scrollView: {
     flex: 1,
@@ -287,27 +289,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 30,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
   },
   profilePicture: {
     width: 100,
     height: 100,
     borderRadius: 50,
     marginBottom: 15,
+    borderWidth: 2,
+    borderColor: '#FF6B35',
   },
   profilePicturePlaceholder: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
+    borderWidth: 2,
+    borderColor: '#6B5744',
   },
   username: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 15,
+    color: '#FFF8E7',
   },
   statsRow: {
     flexDirection: 'row',
@@ -319,10 +326,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#FFF8E7',
   },
   statLabel: {
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
     marginTop: 5,
   },
   crawlsSection: {
@@ -334,19 +342,22 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#666',
+    color: '#D4A574',
     marginTop: 15,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
+    color: '#FFF8E7',
   },
   crawlCard: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#3E2723',
     borderRadius: 15,
     padding: 15,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   crawlHeader: {
     flexDirection: 'row',
@@ -358,10 +369,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     flex: 1,
+    color: '#FFF8E7',
   },
   crawlDate: {
     fontSize: 12,
-    color: '#666',
+    color: '#D4A574',
   },
   crawlStats: {
     flexDirection: 'row',
@@ -375,13 +387,15 @@ const styles = StyleSheet.create({
   },
   crawlStatText: {
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
   },
   crawlMapContainer: {
     height: 150,
     borderRadius: 10,
     overflow: 'hidden',
     marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   crawlMap: {
     flex: 1,
@@ -399,14 +413,16 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   moreMediaText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#666',
+    color: '#D4A574',
   },
   recapButton: {
     flexDirection: 'row',
@@ -414,19 +430,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#FF6B6B',
+    borderWidth: 2,
+    borderColor: '#FF6B35',
   },
   recapButtonText: {
-    color: '#FF6B6B',
+    color: '#FF6B35',
     fontSize: 16,
     fontWeight: '600',
   },
   recapModal: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#2C1810',
   },
   recapHeader: {
     flexDirection: 'row',
@@ -436,11 +452,13 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
+    backgroundColor: '#2C1810',
   },
   recapTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#FFF8E7',
   },
   recapImageContainer: {
     flex: 1,
@@ -456,7 +474,7 @@ const styles = StyleSheet.create({
   recapNavButton: {
     position: 'absolute',
     top: '50%',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(255, 107, 53, 0.7)',
     padding: 15,
     borderRadius: 30,
   },
@@ -469,16 +487,23 @@ const styles = StyleSheet.create({
   recapCaptionContainer: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#3E2723',
+    backgroundColor: '#2C1810',
   },
   recapCaption: {
     fontSize: 16,
-    color: '#000',
+    color: '#FFF8E7',
     marginBottom: 10,
   },
   recapImageCount: {
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
     textAlign: 'center',
+  },
+  errorText: {
+    color: '#FFF8E7',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 50,
   },
 });

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View,
   Text,
@@ -20,12 +21,38 @@ export default function ExploreBarsScreen() {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [visitedBars, setVisitedBars] = useState<Bar[]>([]);
   const [allBars, setAllBars] = useState<Bar[]>([]);
-  const [showUserLocation, setShowUserLocation] = useState(false);
 
   useEffect(() => {
     getCurrentLocation();
-    loadBars();
   }, []);
+
+  // Auto-center on user location when component mounts or user location is available
+  useEffect(() => {
+    if (userLocation && mapRef.current) {
+      const region: Region = {
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      };
+      mapRef.current.animateToRegion(region, 1000);
+    }
+  }, [userLocation]);
+
+  // Auto-center when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (userLocation && mapRef.current) {
+        const region: Region = {
+          latitude: userLocation.latitude,
+          longitude: userLocation.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        };
+        mapRef.current.animateToRegion(region, 1000);
+      }
+    }, [userLocation])
+  );
 
   useEffect(() => {
     if (currentUser) {
@@ -71,74 +98,17 @@ export default function ExploreBarsScreen() {
       const region: Region = {
         latitude: userLocation.latitude,
         longitude: userLocation.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
       };
       
       mapRef.current.animateToRegion(region, 1000);
-      setShowUserLocation(true);
-      
-      // Hide the indicator after 3 seconds
-      setTimeout(() => {
-        setShowUserLocation(false);
-      }, 3000);
     }
   };
 
-  const loadBars = async () => {
-    // For MVP, using mock data
-    // In production, this would call a bars/restaurants API
-    const mockBars: Bar[] = [
-      {
-        id: 'bar1',
-        name: 'The Local Pub',
-        latitude: 40.7128,
-        longitude: -74.0060,
-        visited: false,
-      },
-      {
-        id: 'bar2',
-        name: 'Cocktail Lounge',
-        latitude: 40.7138,
-        longitude: -74.0070,
-        visited: false,
-      },
-      {
-        id: 'bar3',
-        name: 'Beer Garden',
-        latitude: 40.7148,
-        longitude: -74.0080,
-        visited: false,
-      },
-      {
-        id: 'bar4',
-        name: 'Wine Bar',
-        latitude: 40.7158,
-        longitude: -74.0090,
-        visited: false,
-      },
-      {
-        id: 'bar5',
-        name: 'Sports Bar',
-        latitude: 40.7168,
-        longitude: -74.0100,
-        visited: false,
-      },
-    ];
-
-    // Mark visited bars
-    const barsWithVisited = mockBars.map((bar) => ({
-      ...bar,
-      visited: visitedBars.some((vb) => vb.id === bar.id),
-    }));
-
-    setAllBars(barsWithVisited);
-  };
-
+  // Only show bars that the user has actually visited during crawls
   useEffect(() => {
-    if (visitedBars.length > 0) {
-      loadBars();
-    }
+    setAllBars(visitedBars);
   }, [visitedBars]);
 
   const initialRegion = userLocation
@@ -161,12 +131,8 @@ export default function ExploreBarsScreen() {
         <Text style={styles.headerTitle}>Explore Bars</Text>
         <View style={styles.statsContainer}>
           <View style={styles.stat}>
-            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-            <Text style={styles.statText}>{visitedBars.length} Visited</Text>
-          </View>
-          <View style={styles.stat}>
-            <Ionicons name="location" size={20} color="#666" />
-            <Text style={styles.statText}>{allBars.length} Total</Text>
+            <Ionicons name="checkmark-circle" size={20} color="#FF6B35" />
+            <Text style={styles.statText}>{visitedBars.length} Bars Visited</Text>
           </View>
         </View>
       </View>
@@ -295,19 +261,10 @@ export default function ExploreBarsScreen() {
           style={styles.targetButton}
           onPress={focusOnUserLocation}
         >
-          <Ionicons name="locate" size={24} color="#FF6B6B" />
+          <Ionicons name="locate" size={24} color="#FF6B35" />
         </TouchableOpacity>
       </View>
 
-      {/* User Location Indicator Overlay - Shows when target button is pressed */}
-      {showUserLocation && userLocation && (
-        <View style={styles.userLocationIndicator} pointerEvents="none">
-          <View style={styles.userLocationIndicatorPulse} />
-          <View style={styles.userLocationIndicatorInner}>
-            <Ionicons name="location" size={32} color="#FF6B6B" />
-          </View>
-        </View>
-      )}
     </View>
   );
 }
@@ -315,20 +272,20 @@ export default function ExploreBarsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#2C1810',
   },
   header: {
     paddingTop: 50,
     paddingBottom: 15,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    backgroundColor: '#fff',
+    borderBottomColor: '#3E2723',
+    backgroundColor: '#2C1810',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FF6B6B',
+    color: '#FF6B35',
     marginBottom: 10,
   },
   statsContainer: {
@@ -342,7 +299,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
   },
   map: {
     flex: 1,
@@ -355,20 +312,20 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#3E2723',
     borderWidth: 2,
-    borderColor: '#666',
+    borderColor: '#6B5744',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.5,
     shadowRadius: 3.84,
     elevation: 5,
   },
   markerVisited: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
+    backgroundColor: '#FF6B35',
+    borderColor: '#FF6B35',
   },
   visitedBadge: {
     position: 'absolute',
@@ -377,11 +334,11 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#FF6B35',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#FFF8E7',
   },
   legend: {
     position: 'absolute',
@@ -392,16 +349,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   legendContent: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(62, 39, 35, 0.95)',
     padding: 15,
     borderRadius: 10,
     flexDirection: 'row',
     gap: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.5,
     shadowRadius: 3.84,
     elevation: 5,
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   legendItem: {
     flexDirection: 'row',
@@ -412,20 +371,20 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#fff',
+    backgroundColor: '#3E2723',
     borderWidth: 2,
-    borderColor: '#666',
+    borderColor: '#6B5744',
   },
   legendMarkerVisited: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
+    backgroundColor: '#FF6B35',
+    borderColor: '#FF6B35',
   },
   legendText: {
     fontSize: 12,
-    color: '#666',
+    color: '#D4A574',
   },
   targetButton: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(62, 39, 35, 0.95)',
     width: 50,
     height: 50,
     borderRadius: 25,
@@ -433,9 +392,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.5,
     shadowRadius: 3.84,
     elevation: 5,
+    borderWidth: 1,
+    borderColor: '#FF6B35',
   },
   userLocationMarker: {
     width: 50,
@@ -448,57 +409,22 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF6B35',
     opacity: 0.3,
   },
   userLocationInner: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF6B35',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#fff',
-    shadowColor: '#000',
+    borderColor: '#FFF8E7',
+    shadowColor: '#F95700',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.5,
     shadowRadius: 4,
     elevation: 5,
-  },
-  userLocationIndicator: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    marginTop: -40,
-    marginLeft: -40,
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    pointerEvents: 'none',
-  },
-  userLocationIndicatorPulse: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FF6B6B',
-    opacity: 0.2,
-  },
-  userLocationIndicatorInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FF6B6B',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 8,
   },
 });

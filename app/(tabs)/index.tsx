@@ -67,7 +67,7 @@ export default function FeedScreen() {
             <Image source={{ uri: user.profilePicture }} style={styles.profilePicture} />
           ) : (
             <View style={styles.profilePicturePlaceholder}>
-              <Ionicons name="person" size={20} color="#666" />
+              <Ionicons name="person" size={20} color="#8B7355" />
             </View>
           )}
           <Text style={styles.username}>{user.username}</Text>
@@ -81,15 +81,15 @@ export default function FeedScreen() {
         {/* Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.stat}>
-            <Ionicons name="wine" size={16} color="#666" />
+            <Ionicons name="wine" size={16} color="#FF6B35" />
             <Text style={styles.statText}>{crawl.drinksCount} drinks</Text>
           </View>
           <View style={styles.stat}>
-            <Ionicons name="beer" size={16} color="#666" />
+            <Ionicons name="beer" size={16} color="#FF6B35" />
             <Text style={styles.statText}>{crawl.barsHit.length} bars</Text>
           </View>
           <View style={styles.stat}>
-            <Ionicons name="walk" size={16} color="#666" />
+            <Ionicons name="walk" size={16} color="#FF6B35" />
             <Text style={styles.statText}>{crawl.milesWalked.toFixed(2)} mi</Text>
           </View>
         </View>
@@ -113,7 +113,7 @@ export default function FeedScreen() {
                   latitude: point.latitude,
                   longitude: point.longitude,
                 }))}
-                strokeColor="#FF6B6B"
+                strokeColor="#FF6B35"
                 strokeWidth={3}
               />
             </MapView>
@@ -167,7 +167,7 @@ export default function FeedScreen() {
             <Ionicons
               name={isCheered ? 'heart' : 'heart-outline'}
               size={24}
-              color={isCheered ? '#FF6B6B' : '#666'}
+              color={isCheered ? '#FF6B35' : '#8B7355'}
             />
             <Text style={[styles.actionText, isCheered && styles.actionTextActive]}>
               Cheers ({post.cheersCount})
@@ -178,7 +178,7 @@ export default function FeedScreen() {
             style={styles.actionButton}
             onPress={() => toggleComments(post.id)}
           >
-            <Ionicons name="chatbubble-outline" size={24} color="#666" />
+            <Ionicons name="chatbubble-outline" size={24} color="#8B7355" />
             <Text style={styles.actionText}>Comment ({post.comments.length})</Text>
           </TouchableOpacity>
         </View>
@@ -193,17 +193,18 @@ export default function FeedScreen() {
               </View>
             ))}
             <View style={styles.commentInputContainer}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Add a comment..."
-                value={commentTexts[post.id] || ''}
-                onChangeText={(text) =>
-                  setCommentTexts((prev) => ({ ...prev, [post.id]: text }))
-                }
-                onSubmitEditing={() => submitComment(post.id)}
-              />
+            <TextInput
+              style={styles.commentInput}
+              placeholder="Add a comment..."
+              placeholderTextColor="#8B7355"
+              value={commentTexts[post.id] || ''}
+              onChangeText={(text) =>
+                setCommentTexts((prev) => ({ ...prev, [post.id]: text }))
+              }
+              onSubmitEditing={() => submitComment(post.id)}
+            />
               <TouchableOpacity onPress={() => submitComment(post.id)}>
-                <Ionicons name="send" size={20} color="#FF6B6B" />
+                <Ionicons name="send" size={20} color="#FF6B35" />
               </TouchableOpacity>
             </View>
           </View>
@@ -220,7 +221,7 @@ export default function FeedScreen() {
       <ScrollView style={styles.scrollView}>
         {feedPosts.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="beer-outline" size={64} color="#ccc" />
+            <Ionicons name="beer-outline" size={64} color="#8B7355" />
             <Text style={styles.emptyStateText}>No crawls yet</Text>
             <Text style={styles.emptyStateSubtext}>Start a crawl to see posts here!</Text>
           </View>
@@ -235,30 +236,33 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#2C1810',
   },
   header: {
     paddingTop: 50,
     paddingBottom: 15,
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#2C1810',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FF6B6B',
+    color: '#FF6B35',
   },
   scrollView: {
     flex: 1,
   },
   postContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#3E2723',
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#2C1810',
     paddingBottom: 15,
+    borderRadius: 12,
+    marginHorizontal: 10,
+    marginTop: 10,
   },
   userHeader: {
     flexDirection: 'row',
@@ -270,27 +274,31 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 10,
+    borderWidth: 2,
+    borderColor: '#FF6B35',
   },
   profilePicturePlaceholder: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   username: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
+    color: '#FFF8E7',
   },
   postTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     paddingHorizontal: 15,
     marginBottom: 10,
-    color: '#000',
+    color: '#FFF8E7',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -305,7 +313,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
   },
   mapContainer: {
     height: 200,
@@ -313,6 +321,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderRadius: 10,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   map: {
     flex: 1,
@@ -335,7 +345,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(255, 107, 53, 0.8)',
     padding: 8,
     borderRadius: 20,
   },
@@ -343,7 +353,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -357,17 +367,17 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
   },
   actionTextActive: {
-    color: '#FF6B6B',
+    color: '#FF6B35',
   },
   commentsSection: {
     paddingHorizontal: 15,
     marginTop: 15,
     paddingTop: 15,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#6B5744',
   },
   comment: {
     flexDirection: 'row',
@@ -376,11 +386,11 @@ const styles = StyleSheet.create({
   commentUsername: {
     fontWeight: '600',
     fontSize: 14,
-    color: '#000',
+    color: '#FFF8E7',
   },
   commentText: {
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
     flex: 1,
   },
   commentInputContainer: {
@@ -389,16 +399,18 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#6B5744',
   },
   commentInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#6B5744',
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 8,
     fontSize: 14,
+    backgroundColor: '#1A1A1A',
+    color: '#FFF8E7',
   },
   emptyState: {
     flex: 1,
@@ -409,12 +421,12 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#666',
+    color: '#D4A574',
     marginTop: 20,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#999',
+    color: '#8B7355',
     marginTop: 10,
   },
 });

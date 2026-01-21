@@ -2,10 +2,30 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import * as Location from 'expo-location';
 import { ActiveCrawl, Crawl, User, Post, RoutePoint, Bar, Drink, CrawlUpdate, DrinkType } from '@/types';
 
+interface SignUpData {
+  username: string;
+  name: string;
+  age: number;
+  email: string;
+  phone: string;
+  profilePicture?: string;
+  description?: string;
+}
+
+interface UpdateProfileData {
+  name?: string;
+  email?: string;
+  phone?: string;
+  profilePicture?: string;
+}
+
 interface AppContextType {
   currentUser: User | null;
   activeCrawl: ActiveCrawl | null;
   feedPosts: Post[];
+  signUp: (data: SignUpData) => Promise<void>;
+  logout: () => void;
+  updateProfile: (data: UpdateProfileData) => void;
   startCrawl: () => Promise<void>;
   endCrawl: () => Promise<void>;
   addUpdate: (photoUri: string, drinkType?: DrinkType) => Promise<void>;
@@ -26,19 +46,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
   const [autoTerminateTimer, setAutoTerminateTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Initialize mock user for MVP
+  // Load user from storage on mount (for MVP, we'll use in-memory state)
   useEffect(() => {
-    setCurrentUser({
-      id: 'user1',
-      username: 'BarCrawler',
-      profilePicture: undefined,
-      followersCount: 42,
-      friendsCount: 15,
+    // In production, load from AsyncStorage or similar
+    // For MVP, start with no user (will show welcome screen)
+  }, []);
+
+  const signUp = useCallback(async (data: SignUpData) => {
+    const newUser: User = {
+      id: `user_${Date.now()}`,
+      username: data.username,
+      name: data.name,
+      age: data.age,
+      email: data.email,
+      phone: data.phone,
+      profilePicture: data.profilePicture,
+      description: data.description,
+      followersCount: 0,
+      friendsCount: 0,
       crawls: [],
-    });
+    };
     
-    // Mock feed posts
+    setCurrentUser(newUser);
+    // In production, save to AsyncStorage or backend
+  }, []);
+
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+    setActiveCrawl(null);
     setFeedPosts([]);
+    // In production, clear AsyncStorage
+  }, []);
+
+  const updateProfile = useCallback((data: UpdateProfileData) => {
+    setCurrentUser((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        ...(data.name && { name: data.name }),
+        ...(data.email && { email: data.email }),
+        ...(data.phone && { phone: data.phone }),
+        ...(data.profilePicture !== undefined && { profilePicture: data.profilePicture }),
+      };
+    });
   }, []);
 
   // Calculate distance in miles from route points
@@ -169,7 +219,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [detectNearbyBars]);
 
-  const endCrawl = useCallback(() => {
+  const endCrawl = useCallback(async () => {
     if (locationSubscription) {
       locationSubscription.remove();
       setLocationSubscription(null);
@@ -241,7 +291,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const uploadCrawl = useCallback(async (title: string, caption?: string, selectedUpdates?: string[]) => {
     if (!activeCrawl || !currentUser) return;
 
-    const updatesToInclude = selectedUpdates
+    // If selectedUpdates is provided and not empty, filter updates
+    // Otherwise, include all updates (or empty array if no updates exist)
+    const updatesToInclude = selectedUpdates && selectedUpdates.length > 0
       ? activeCrawl.updates.filter((u) => selectedUpdates.includes(u.id))
       : activeCrawl.updates;
 
@@ -371,6 +423,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         activeCrawl,
         feedPosts,
+        signUp,
+        logout,
+        updateProfile,
         startCrawl,
         endCrawl,
         addUpdate,

@@ -60,11 +60,6 @@ export default function CrawlReviewScreen() {
   };
 
   const handleUpload = async () => {
-    if (selectedUpdates.size === 0) {
-      Alert.alert('Error', 'Please select at least one photo to upload');
-      return;
-    }
-
     if (caption.length > 200) {
       Alert.alert('Error', 'Caption must be 200 words or less');
       return;
@@ -72,7 +67,9 @@ export default function CrawlReviewScreen() {
 
     try {
       setIsUploading(true);
-      await uploadCrawl(title, caption || undefined, Array.from(selectedUpdates));
+      // Pass selected updates if any exist, otherwise pass empty array
+      const updatesToUpload = selectedUpdates.size > 0 ? Array.from(selectedUpdates) : [];
+      await uploadCrawl(title, caption || undefined, updatesToUpload.length > 0 ? updatesToUpload : undefined);
       router.push('/(tabs)/');
     } catch (error) {
       Alert.alert('Error', 'Failed to upload crawl');
@@ -103,7 +100,7 @@ export default function CrawlReviewScreen() {
             );
           }}
         >
-          <Ionicons name="close" size={28} color="#000" />
+          <Ionicons name="close" size={28} color="#FFF8E7" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Review Crawl</Text>
         <View style={{ width: 28 }} />
@@ -113,17 +110,17 @@ export default function CrawlReviewScreen() {
         {/* Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.stat}>
-            <Ionicons name="wine" size={24} color="#FF6B6B" />
+            <Ionicons name="wine" size={24} color="#FF6B35" />
             <Text style={styles.statValue}>{drinksCount}</Text>
             <Text style={styles.statLabel}>Drinks</Text>
           </View>
           <View style={styles.stat}>
-            <Ionicons name="beer" size={24} color="#FF6B6B" />
+            <Ionicons name="beer" size={24} color="#FF6B35" />
             <Text style={styles.statValue}>{barsHit}</Text>
             <Text style={styles.statLabel}>Bars</Text>
           </View>
           <View style={styles.stat}>
-            <Ionicons name="walk" size={24} color="#FF6B6B" />
+            <Ionicons name="walk" size={24} color="#FF6B35" />
             <Text style={styles.statValue}>{milesWalked.toFixed(2)}</Text>
             <Text style={styles.statLabel}>Miles</Text>
           </View>
@@ -132,25 +129,27 @@ export default function CrawlReviewScreen() {
         {/* Title Input */}
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Title</Text>
-          <TextInput
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Crawl title"
-          />
+            <TextInput
+              style={styles.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Crawl title"
+              placeholderTextColor="#8B7355"
+            />
         </View>
 
         {/* Caption Input */}
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Caption (optional, max 200 words)</Text>
-          <TextInput
-            style={[styles.input, styles.captionInput]}
-            value={caption}
-            onChangeText={setCaption}
-            placeholder="Write a caption..."
-            multiline
-            maxLength={200}
-          />
+            <TextInput
+              style={[styles.input, styles.captionInput]}
+              value={caption}
+              onChangeText={setCaption}
+              placeholder="Write a caption..."
+              placeholderTextColor="#8B7355"
+              multiline
+              maxLength={200}
+            />
           <Text style={styles.charCount}>{caption.length}/200</Text>
         </View>
 
@@ -184,56 +183,67 @@ export default function CrawlReviewScreen() {
         )}
 
         {/* Media Carousel */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Photos ({selectedUpdates.size} selected)</Text>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            style={styles.mediaCarousel}
-          >
-            {activeCrawl.updates.map((update) => {
-              const isSelected = selectedUpdates.has(update.id);
-              return (
-                <TouchableOpacity
-                  key={update.id}
-                  style={styles.mediaItem}
-                  onPress={() => toggleUpdate(update.id)}
-                >
-                  <Image source={{ uri: update.photoUri }} style={styles.mediaImage} />
-                  {!isSelected && (
-                    <View style={styles.deselectedOverlay}>
-                      <Ionicons name="close-circle" size={40} color="#fff" />
-                    </View>
-                  )}
-                  {isSelected && (
-                    <View style={styles.selectedBadge}>
-                      <Ionicons name="checkmark-circle" size={24} color="#fff" />
-                    </View>
-                  )}
-                  {update.drinkType && (
-                    <View style={styles.drinkBadge}>
-                      <Ionicons
-                        name={
-                          update.drinkType === 'beer'
-                            ? 'beer'
-                            : update.drinkType === 'wine'
-                            ? 'wine'
-                            : update.drinkType === 'shot'
-                            ? 'flask'
-                            : 'cafe'
-                        }
-                        size={16}
-                        color="#fff"
-                      />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-          <Text style={styles.mediaHint}>Tap photos to remove them from the post</Text>
-        </View>
+        {activeCrawl.updates.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Photos ({selectedUpdates.size} selected)</Text>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              style={styles.mediaCarousel}
+            >
+              {activeCrawl.updates.map((update) => {
+                const isSelected = selectedUpdates.has(update.id);
+                return (
+                  <TouchableOpacity
+                    key={update.id}
+                    style={styles.mediaItem}
+                    onPress={() => toggleUpdate(update.id)}
+                  >
+                    <Image source={{ uri: update.photoUri }} style={styles.mediaImage} />
+                    {!isSelected && (
+                      <View style={styles.deselectedOverlay}>
+                        <Ionicons name="close-circle" size={40} color="#fff" />
+                      </View>
+                    )}
+                    {isSelected && (
+                      <View style={styles.selectedBadge}>
+                        <Ionicons name="checkmark-circle" size={24} color="#fff" />
+                      </View>
+                    )}
+                    {update.drinkType && (
+                      <View style={styles.drinkBadge}>
+                        <Ionicons
+                          name={
+                            update.drinkType === 'beer'
+                              ? 'beer'
+                              : update.drinkType === 'wine'
+                              ? 'wine'
+                              : update.drinkType === 'shot'
+                              ? 'flask'
+                              : 'cafe'
+                          }
+                          size={16}
+                          color="#fff"
+                        />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <Text style={styles.mediaHint}>Tap photos to remove them from the post</Text>
+          </View>
+        ) : (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Photos</Text>
+            <View style={styles.noPhotosContainer}>
+              <Ionicons name="camera-outline" size={48} color="#8B7355" />
+              <Text style={styles.noPhotosText}>No photos added to this crawl</Text>
+              <Text style={styles.noPhotosSubtext}>You can still upload the crawl without photos</Text>
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       {/* Upload Button */}
@@ -241,7 +251,7 @@ export default function CrawlReviewScreen() {
         <TouchableOpacity
           style={[styles.uploadButton, isUploading && styles.uploadButtonDisabled]}
           onPress={handleUpload}
-          disabled={isUploading || selectedUpdates.size === 0}
+          disabled={isUploading}
         >
           <Text style={styles.uploadButtonText}>
             {isUploading ? 'Uploading...' : 'Upload Crawl'}
@@ -255,7 +265,7 @@ export default function CrawlReviewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#2C1810',
   },
   header: {
     flexDirection: 'row',
@@ -265,11 +275,13 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
+    backgroundColor: '#2C1810',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#FFF8E7',
   },
   scrollView: {
     flex: 1,
@@ -279,7 +291,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
   },
   stat: {
     alignItems: 'center',
@@ -287,31 +299,33 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#FFF8E7',
     marginTop: 5,
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
+    color: '#D4A574',
     marginTop: 5,
   },
   inputContainer: {
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000',
+    color: '#FFF8E7',
     marginBottom: 10,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#6B5744',
+    borderRadius: 12,
     padding: 12,
     fontSize: 16,
+    backgroundColor: '#3E2723',
+    color: '#FFF8E7',
   },
   captionInput: {
     height: 100,
@@ -319,24 +333,27 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    color: '#999',
+    color: '#8B7355',
     textAlign: 'right',
     marginTop: 5,
   },
   section: {
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 15,
+    color: '#FFF8E7',
   },
   mapContainer: {
     height: 200,
     borderRadius: 10,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   map: {
     flex: 1,
@@ -361,7 +378,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(44, 24, 16, 0.8)',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -370,41 +387,62 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(255, 107, 53, 0.8)',
     borderRadius: 15,
   },
   drinkBadge: {
     position: 'absolute',
     top: 10,
     left: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(255, 107, 53, 0.8)',
     padding: 8,
     borderRadius: 20,
   },
   mediaHint: {
     fontSize: 12,
-    color: '#999',
+    color: '#8B7355',
     textAlign: 'center',
     marginTop: 5,
   },
   footer: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    backgroundColor: '#fff',
+    borderTopColor: '#3E2723',
+    backgroundColor: '#2C1810',
   },
   uploadButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF6B35',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#F95700',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 6,
   },
   uploadButtonDisabled: {
     opacity: 0.6,
   },
   uploadButtonText: {
-    color: '#fff',
+    color: '#FFF8E7',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  noPhotosContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  noPhotosText: {
+    fontSize: 16,
+    color: '#D4A574',
+    marginTop: 15,
+    fontWeight: '500',
+  },
+  noPhotosSubtext: {
+    fontSize: 14,
+    color: '#8B7355',
+    marginTop: 5,
   },
 });

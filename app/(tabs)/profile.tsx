@@ -8,6 +8,7 @@ import {
   Image,
   Dimensions,
   Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,16 +27,17 @@ const PERIODS: Array<'day' | 'week' | 'month' | 'year' | 'lifetime'> = [
 ];
 
 export default function ProfileScreen() {
-  const { currentUser, getDrinksCount } = useApp();
+  const { currentUser, getDrinksCount, logout } = useApp();
   const router = useRouter();
   const [selectedPeriod, setSelectedPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'lifetime'>('lifetime');
   const [recapCrawl, setRecapCrawl] = useState<Crawl | null>(null);
   const [recapImageIndex, setRecapImageIndex] = useState(0);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
   if (!currentUser) {
     return (
       <View style={styles.container}>
-        <Text>Loading...</Text>
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -76,11 +78,52 @@ export default function ProfileScreen() {
     return `${location} at ${time} drinking ${drink}`;
   };
 
+  const handleLogout = () => {
+    logout();
+    router.replace('/welcome');
+  };
+
+  const handleEditProfile = () => {
+    setShowSettingsMenu(false);
+    router.push('/edit-profile');
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => setShowSettingsMenu(!showSettingsMenu)}
+        >
+          <Ionicons name="settings-outline" size={24} color="#FF6B35" />
+        </TouchableOpacity>
       </View>
+
+      {/* Settings Menu */}
+      {showSettingsMenu && (
+        <>
+          <TouchableWithoutFeedback onPress={() => setShowSettingsMenu(false)}>
+            <View style={styles.settingsMenuOverlay} />
+          </TouchableWithoutFeedback>
+          <View style={styles.settingsMenu}>
+            <TouchableOpacity
+              style={styles.settingsMenuItem}
+              onPress={handleEditProfile}
+            >
+              <Ionicons name="create-outline" size={20} color="#FFF8E7" />
+              <Text style={styles.settingsMenuText}>Edit Profile</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.settingsMenuItem}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={20} color="#FF6B35" />
+              <Text style={[styles.settingsMenuText, styles.logoutText]}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       <ScrollView style={styles.scrollView}>
         {/* Profile Info */}
@@ -89,10 +132,14 @@ export default function ProfileScreen() {
             <Image source={{ uri: currentUser.profilePicture }} style={styles.profilePicture} />
           ) : (
             <View style={styles.profilePicturePlaceholder}>
-              <Ionicons name="person" size={50} color="#666" />
+              <Ionicons name="person" size={50} color="#8B7355" />
             </View>
           )}
-          <Text style={styles.username}>{currentUser.username}</Text>
+          <Text style={styles.name}>{currentUser.name}</Text>
+          <Text style={styles.username}>@{currentUser.username}</Text>
+          {currentUser.description && (
+            <Text style={styles.description}>{currentUser.description}</Text>
+          )}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{currentUser.followersCount}</Text>
@@ -130,7 +177,7 @@ export default function ProfileScreen() {
             ))}
           </View>
           <View style={styles.drinksCountContainer}>
-            <Ionicons name="wine" size={40} color="#FF6B6B" />
+              <Ionicons name="wine" size={40} color="#FF6B35" />
             <Text style={styles.drinksCount}>{drinksCount}</Text>
           </View>
         </View>
@@ -140,7 +187,7 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>My Crawls</Text>
           {currentUser.crawls.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="beer-outline" size={48} color="#ccc" />
+              <Ionicons name="beer-outline" size={48} color="#8B7355" />
               <Text style={styles.emptyStateText}>No crawls yet</Text>
               <Text style={styles.emptyStateSubtext}>Start your first crawl!</Text>
             </View>
@@ -156,15 +203,15 @@ export default function ProfileScreen() {
 
                 <View style={styles.crawlStats}>
                   <View style={styles.crawlStat}>
-                    <Ionicons name="wine" size={16} color="#666" />
-                    <Text style={styles.crawlStatText}>{crawl.drinksCount} drinks</Text>
-                  </View>
-                  <View style={styles.crawlStat}>
-                    <Ionicons name="beer" size={16} color="#666" />
-                    <Text style={styles.crawlStatText}>{crawl.barsHit.length} bars</Text>
-                  </View>
-                  <View style={styles.crawlStat}>
-                    <Ionicons name="walk" size={16} color="#666" />
+                <Ionicons name="wine" size={16} color="#FF6B35" />
+                <Text style={styles.crawlStatText}>{crawl.drinksCount} drinks</Text>
+              </View>
+              <View style={styles.crawlStat}>
+                <Ionicons name="beer" size={16} color="#FF6B35" />
+                <Text style={styles.crawlStatText}>{crawl.barsHit.length} bars</Text>
+              </View>
+              <View style={styles.crawlStat}>
+                <Ionicons name="walk" size={16} color="#FF6B35" />
                     <Text style={styles.crawlStatText}>{crawl.milesWalked.toFixed(2)} mi</Text>
                   </View>
                 </View>
@@ -188,7 +235,7 @@ export default function ProfileScreen() {
                           latitude: point.latitude,
                           longitude: point.longitude,
                         }))}
-                        strokeColor="#FF6B6B"
+                        strokeColor="#FF6B35"
                         strokeWidth={3}
                       />
                     </MapView>
@@ -221,7 +268,7 @@ export default function ProfileScreen() {
                   style={styles.recapButton}
                   onPress={() => handleNightRecap(crawl)}
                 >
-                  <Ionicons name="images" size={20} color="#FF6B6B" />
+                  <Ionicons name="images" size={20} color="#FF6B35" />
                   <Text style={styles.recapButtonText}>Night Recap</Text>
                 </TouchableOpacity>
               </View>
@@ -291,19 +338,65 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#2C1810',
   },
   header: {
     paddingTop: 50,
     paddingBottom: 15,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#2C1810',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FF6B6B',
+    color: '#FF6B35',
+  },
+  settingsButton: {
+    padding: 5,
+  },
+  settingsMenuOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+  },
+  settingsMenu: {
+    position: 'absolute',
+    top: 90,
+    right: 20,
+    backgroundColor: '#3E2723',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
+    minWidth: 180,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#6B5744',
+  },
+  settingsMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  settingsMenuText: {
+    fontSize: 16,
+    color: '#FFF8E7',
+  },
+  logoutText: {
+    color: '#FF6B35',
   },
   scrollView: {
     flex: 1,
@@ -312,27 +405,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 30,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
   },
   profilePicture: {
     width: 100,
     height: 100,
     borderRadius: 50,
     marginBottom: 15,
+    borderWidth: 2,
+    borderColor: '#FF6B35',
   },
   profilePicturePlaceholder: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
+    borderWidth: 2,
+    borderColor: '#6B5744',
   },
-  username: {
+  name: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 5,
+    color: '#FFF8E7',
+  },
+  username: {
+    fontSize: 16,
+    color: '#D4A574',
+    marginBottom: 10,
+  },
+  description: {
+    fontSize: 14,
+    color: '#D4A574',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    marginTop: 5,
     marginBottom: 15,
+    lineHeight: 20,
   },
   statsRow: {
     flexDirection: 'row',
@@ -344,21 +457,23 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#FFF8E7',
   },
   statLabel: {
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
     marginTop: 5,
   },
   drinksSection: {
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
+    color: '#FFF8E7',
   },
   periodSelector: {
     flexDirection: 'row',
@@ -369,17 +484,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   periodButtonActive: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF6B35',
+    borderColor: '#FF6B35',
   },
   periodButtonText: {
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
   },
   periodButtonTextActive: {
-    color: '#fff',
+    color: '#FFF8E7',
     fontWeight: '600',
   },
   drinksCountContainer: {
@@ -391,7 +509,7 @@ const styles = StyleSheet.create({
   drinksCount: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#FF6B6B',
+    color: '#FF6B35',
   },
   crawlsSection: {
     padding: 20,
@@ -402,19 +520,21 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#666',
+    color: '#D4A574',
     marginTop: 15,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#999',
+    color: '#8B7355',
     marginTop: 5,
   },
   crawlCard: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#3E2723',
     borderRadius: 15,
     padding: 15,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   crawlHeader: {
     flexDirection: 'row',
@@ -426,10 +546,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     flex: 1,
+    color: '#FFF8E7',
   },
   crawlDate: {
     fontSize: 12,
-    color: '#666',
+    color: '#D4A574',
   },
   crawlStats: {
     flexDirection: 'row',
@@ -443,13 +564,15 @@ const styles = StyleSheet.create({
   },
   crawlStatText: {
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
   },
   crawlMapContainer: {
     height: 150,
     borderRadius: 10,
     overflow: 'hidden',
     marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   crawlMap: {
     flex: 1,
@@ -467,14 +590,16 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#6B5744',
   },
   moreMediaText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#666',
+    color: '#D4A574',
   },
   recapButton: {
     flexDirection: 'row',
@@ -482,19 +607,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#FF6B6B',
+    borderWidth: 2,
+    borderColor: '#FF6B35',
   },
   recapButtonText: {
-    color: '#FF6B6B',
+    color: '#FF6B35',
     fontSize: 16,
     fontWeight: '600',
   },
   recapModal: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#2C1810',
   },
   recapHeader: {
     flexDirection: 'row',
@@ -504,11 +629,13 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3E2723',
+    backgroundColor: '#2C1810',
   },
   recapTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#FFF8E7',
   },
   recapImageContainer: {
     flex: 1,
@@ -524,7 +651,7 @@ const styles = StyleSheet.create({
   recapNavButton: {
     position: 'absolute',
     top: '50%',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(255, 107, 53, 0.7)',
     padding: 15,
     borderRadius: 30,
   },
@@ -537,16 +664,23 @@ const styles = StyleSheet.create({
   recapCaptionContainer: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#3E2723',
+    backgroundColor: '#2C1810',
   },
   recapCaption: {
     fontSize: 16,
-    color: '#000',
+    color: '#FFF8E7',
     marginBottom: 10,
   },
   recapImageCount: {
     fontSize: 14,
-    color: '#666',
+    color: '#D4A574',
     textAlign: 'center',
+  },
+  loadingText: {
+    color: '#FFF8E7',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 50,
   },
 });

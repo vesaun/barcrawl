@@ -51,7 +51,12 @@ export interface Crawl {
 export interface User {
   id: string;
   username: string;
+  name: string;
+  age: number;
+  email: string;
+  phone: string;
   profilePicture?: string;
+  description?: string;
   followersCount: number;
   friendsCount: number;
   crawls: Crawl[];

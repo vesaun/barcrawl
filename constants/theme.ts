@@ -1,12 +1,22 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Dark Bar Crawl Theme - Deep, moody colors with fiery orange/red accents
  */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#FF6B6B';
-const tintColorDark = '#FF6B6B';
+// Dark, thirst-inducing color palette
+const fireOrange = '#FF6B35'; // Primary accent - fiery orange
+const deepRed = '#E74C3C'; // Secondary accent - vibrant red
+const darkBrown = '#2C1810'; // Deep brown background
+const charcoal = '#1A1A1A'; // Dark charcoal
+const warmOrange = '#F95700'; // Bright warm orange
+const burgundy = '#C0392B'; // Deep burgundy
+const darkWood = '#3E2723'; // Dark wood tone
+const lightCream = '#FFF8E7'; // Light cream for text
+const mutedGold = '#D4A574'; // Muted gold accent
+
+const tintColorLight = fireOrange;
+const tintColorDark = warmOrange;
 
 export const Colors = {
   light: {
@@ -18,12 +28,12 @@ export const Colors = {
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: lightCream,
+    background: darkBrown,
     tint: tintColorDark,
-    icon: '#9BA1A6',
+    icon: mutedGold,
     tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    tabIconSelected: warmOrange,
   },
 };
 
@@ -51,3 +61,32 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+// Theme constants for dark bar theme
+export const ThemeColors = {
+  // Background colors
+  backgroundPrimary: darkBrown,
+  backgroundSecondary: darkWood,
+  backgroundCard: '#3E2F25',
+  backgroundSurface: '#4A3428',
+  
+  // Accent colors (thirst-inducing)
+  accentOrange: fireOrange,
+  accentRed: deepRed,
+  accentWarmOrange: warmOrange,
+  accentBurgundy: burgundy,
+  
+  // Text colors
+  textPrimary: lightCream,
+  textSecondary: '#C4A87C',
+  textMuted: '#8B7355',
+  
+  // Border & shadows
+  border: '#6B5744',
+  borderLight: '#5A4A38',
+  shadow: 'rgba(0, 0, 0, 0.6)',
+  
+  // Special
+  charcoal: charcoal,
+  mutedGold: mutedGold,
+};
