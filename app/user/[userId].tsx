@@ -5,30 +5,74 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Image,
   Dimensions,
   Modal,
+  TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Polyline } from 'react-native-maps';
 import { useApp } from '@/context/AppContext';
-import { Crawl } from '@/types';
+import { Crawl, Post } from '@/types';
 
 const { width } = Dimensions.get('window');
 
 export default function UserProfileScreen() {
-  const { userId } = useLocalSearchParams<{ userId: string }>();
-  const { currentUser, feedPosts } = useApp();
+  const { userId: userIdParam } = useLocalSearchParams<{ userId: string }>();
+  const userId = Array.isArray(userIdParam) ? userIdParam[0] : userIdParam;
+  const { currentUser, feedPosts, addCheers, addComment } = useApp();
   const router = useRouter();
   const [recapCrawl, setRecapCrawl] = useState<Crawl | null>(null);
   const [recapImageIndex, setRecapImageIndex] = useState(0);
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [currentImageIndex, setCurrentImageIndex] = useState<Record<string, number>>({});
 
   // For MVP, we'll show the current user's profile or find user from feed
   // In production, this would fetch user data by userId
   const user = userId === currentUser?.id
     ? currentUser
     : feedPosts.find((p) => p.user.id === userId)?.user || currentUser;
+
+  // Get posts by this user
+  const userPosts = feedPosts.filter((p) => p.user.id === userId);
+
+  const handleUserPress = (targetUserId: string) => {
+    if (!targetUserId) return;
+    
+    // Always allow navigation - even if it's the same user, it will just refresh the view
+    // This ensures the chain never breaks
+    router.push(`/user/${targetUserId}`);
+  };
+
+  const toggleComments = (postId: string) => {
+    setExpandedComments((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleMediaScroll = (postId: string, event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const itemWidth = width - 60;
+    const imageIndex = Math.round(contentOffsetX / itemWidth);
+    setCurrentImageIndex((prev) => ({ ...prev, [postId]: imageIndex }));
+  };
+
+  const submitComment = (postId: string) => {
+    const text = commentTexts[postId]?.trim();
+    if (text) {
+      addComment(postId, text);
+      setCommentTexts((prev) => ({ ...prev, [postId]: '' }));
+    }
+  };
 
   if (!user) {
     return (
@@ -106,6 +150,163 @@ export default function UserProfileScreen() {
             </View>
           </View>
         </View>
+
+        {/* Posts Section */}
+        {userPosts.length > 0 && (
+          <View style={styles.postsSection}>
+            <Text style={styles.sectionTitle}>Posts</Text>
+            {userPosts.map((post) => {
+              const showComments = expandedComments.has(post.id);
+              const currentIndex = currentImageIndex[post.id] ?? 0;
+              const totalImages = post.crawl.updates.length;
+              
+              return (
+                <View key={post.id} style={styles.postCard}>
+                  {/* Post Title */}
+                  <Text style={styles.postTitle}>
+                    {post.crawl.title || `${post.crawl.city || 'Unknown'} Bar Crawl`}
+                  </Text>
+
+                  {/* Stats */}
+                  <View style={styles.postStats}>
+                    <View style={styles.postStat}>
+                      <Ionicons name="wine" size={16} color="#FF6B35" />
+                      <Text style={styles.postStatText}>{post.crawl.drinksCount} drinks</Text>
+                    </View>
+                    <View style={styles.postStat}>
+                      <Ionicons name="beer" size={16} color="#FF6B35" />
+                      <Text style={styles.postStatText}>{post.crawl.barsHit.length} bars</Text>
+                    </View>
+                    <View style={styles.postStat}>
+                      <Ionicons name="walk" size={16} color="#FF6B35" />
+                      <Text style={styles.postStatText}>{post.crawl.milesWalked.toFixed(2)} mi</Text>
+                    </View>
+                  </View>
+
+                  {/* Media Carousel */}
+                  {post.crawl.updates.length > 0 && (
+                    <View style={styles.mediaCarouselContainer}>
+                      <ScrollView
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.mediaCarousel}
+                        onMomentumScrollEnd={(event) => handleMediaScroll(post.id, event)}
+                        onScroll={(event) => handleMediaScroll(post.id, event)}
+                        scrollEventThrottle={16}
+                      >
+                        {post.crawl.updates.map((update) => (
+                          <View key={update.id} style={styles.mediaItem}>
+                            <Image source={{ uri: update.photoUri }} style={styles.mediaImage} />
+                            {update.drinkType && (
+                              <View style={styles.drinkBadge}>
+                                <Ionicons
+                                  name={
+                                    update.drinkType === 'beer'
+                                      ? 'beer'
+                                      : update.drinkType === 'wine'
+                                      ? 'wine'
+                                      : update.drinkType === 'shot'
+                                      ? 'flask'
+                                      : 'cafe'
+                                  }
+                                  size={16}
+                                  color="#fff"
+                                />
+                              </View>
+                            )}
+                          </View>
+                        ))}
+                      </ScrollView>
+                      {/* Image Counter Indicator */}
+                      {totalImages > 1 && (
+                        <View style={styles.imageCounter}>
+                          <Text style={styles.imageCounterText}>
+                            {currentIndex + 1}/{totalImages}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Caption */}
+                  {post.crawl.caption && (
+                    <Text style={styles.postCaption}>{post.crawl.caption}</Text>
+                  )}
+
+                  {/* Actions */}
+                  <View style={styles.postActions}>
+                    <TouchableOpacity
+                      style={styles.postAction}
+                      onPress={() => addCheers(post.id)}
+                    >
+                      <Ionicons 
+                        name={post.cheeredBy.includes(currentUser?.id || '') ? 'heart' : 'heart-outline'} 
+                        size={20} 
+                        color={post.cheeredBy.includes(currentUser?.id || '') ? '#FF6B35' : '#8B7355'} 
+                      />
+                      <Text style={[
+                        styles.postActionText,
+                        post.cheeredBy.includes(currentUser?.id || '') && styles.postActionTextActive
+                      ]}>
+                        {post.cheersCount} Cheers
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.postAction}
+                      onPress={() => toggleComments(post.id)}
+                    >
+                      <Ionicons name="chatbubble-outline" size={20} color="#8B7355" />
+                      <Text style={styles.postActionText}>Comment ({post.comments.length})</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Comments Section */}
+                  {showComments && (
+                    <View style={styles.commentsSection}>
+                      {post.comments.map((comment) => (
+                        <View key={comment.id} style={styles.comment}>
+                          <Pressable 
+                            onPress={() => {
+                              if (comment.userId) {
+                                handleUserPress(comment.userId);
+                              }
+                            }}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            style={({ pressed }) => [
+                              styles.commentUsernameContainer,
+                              pressed && styles.commentUsernamePressed
+                            ]}
+                            disabled={!comment.userId}
+                          >
+                            <Text style={styles.commentUsername}>{comment.username}</Text>
+                            <Text style={styles.commentColon}>: </Text>
+                          </Pressable>
+                          <Text style={styles.commentText}>{comment.text}</Text>
+                        </View>
+                      ))}
+                      <View style={styles.commentInputContainer}>
+                        <TextInput
+                          style={styles.commentInput}
+                          placeholder="Add a comment..."
+                          placeholderTextColor="#8B7355"
+                          value={commentTexts[post.id] || ''}
+                          onChangeText={(text) =>
+                            setCommentTexts((prev) => ({ ...prev, [post.id]: text }))
+                          }
+                          onSubmitEditing={() => submitComment(post.id)}
+                        />
+                        <TouchableOpacity onPress={() => submitComment(post.id)}>
+                          <Ionicons name="send" size={20} color="#FF6B35" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
 
         {/* Crawls List */}
         <View style={styles.crawlsSection}>
@@ -505,5 +706,156 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 50,
+  },
+  postsSection: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#3E2723',
+  },
+  postCard: {
+    backgroundColor: '#3E2723',
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#6B5744',
+  },
+  postTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFF8E7',
+    marginBottom: 10,
+  },
+  postStats: {
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 15,
+  },
+  postStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  postStatText: {
+    fontSize: 14,
+    color: '#D4A574',
+  },
+  mediaCarouselContainer: {
+    position: 'relative',
+    marginBottom: 15,
+  },
+  mediaCarousel: {
+    marginBottom: 0,
+  },
+  mediaItem: {
+    width: width - 60,
+    height: 300,
+    marginRight: 10,
+    position: 'relative',
+  },
+  mediaImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+  },
+  imageCounter: {
+    position: 'absolute',
+    bottom: 10,
+    left: 25,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  imageCounterText: {
+    color: '#FFF8E7',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  drinkBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(255, 107, 53, 0.8)',
+    padding: 8,
+    borderRadius: 20,
+  },
+  postCaption: {
+    fontSize: 14,
+    color: '#D4A574',
+    marginBottom: 15,
+  },
+  postActions: {
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 10,
+  },
+  postAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  postActionText: {
+    fontSize: 14,
+    color: '#D4A574',
+  },
+  commentsSection: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#6B5744',
+  },
+  comment: {
+    flexDirection: 'row',
+    marginBottom: 10,
+    alignItems: 'flex-start',
+  },
+  commentUsernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    marginRight: 4,
+  },
+  commentUsernamePressed: {
+    opacity: 0.6,
+  },
+  commentUsername: {
+    fontWeight: '600',
+    fontSize: 14,
+    color: '#FF6B35',
+  },
+  commentColon: {
+    fontSize: 14,
+    color: '#D4A574',
+  },
+  commentText: {
+    fontSize: 14,
+    color: '#D4A574',
+    flex: 1,
+    flexShrink: 1,
+    paddingTop: 4,
+  },
+  commentInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#6B5744',
+  },
+  commentInput: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: '#6B5744',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    fontSize: 14,
+    backgroundColor: '#1A1A1A',
+    color: '#FFF8E7',
+  },
+  postActionTextActive: {
+    color: '#FF6B35',
   },
 });

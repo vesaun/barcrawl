@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   TextInput,
   Image,
   Dimensions,
@@ -22,6 +23,7 @@ export default function FeedScreen() {
   const router = useRouter();
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [currentImageIndex, setCurrentImageIndex] = useState<Record<string, number>>({});
 
   const handleUserPress = (userId: string) => {
     router.push(`/user/${userId}`);
@@ -51,10 +53,19 @@ export default function FeedScreen() {
     }
   };
 
+  const handleMediaScroll = (postId: string, event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const itemWidth = width - 30;
+    const imageIndex = Math.round(contentOffsetX / itemWidth);
+    setCurrentImageIndex((prev) => ({ ...prev, [postId]: imageIndex }));
+  };
+
   const renderPost = (post: Post) => {
     const { crawl, user } = post;
     const isCheered = post.cheeredBy.includes(currentUser?.id || '');
     const showComments = expandedComments.has(post.id);
+    const currentIndex = currentImageIndex[post.id] ?? 0;
+    const totalImages = crawl.updates.length;
 
     return (
       <View key={post.id} style={styles.postContainer}>
@@ -122,35 +133,48 @@ export default function FeedScreen() {
 
         {/* Media Carousel */}
         {crawl.updates.length > 0 && (
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            style={styles.mediaCarousel}
-          >
-            {crawl.updates.map((update) => (
-              <View key={update.id} style={styles.mediaItem}>
-                <Image source={{ uri: update.photoUri }} style={styles.mediaImage} />
-                {update.drinkType && (
-                  <View style={styles.drinkBadge}>
-                    <Ionicons
-                      name={
-                        update.drinkType === 'beer'
-                          ? 'beer'
-                          : update.drinkType === 'wine'
-                          ? 'wine'
-                          : update.drinkType === 'shot'
-                          ? 'flask'
-                          : 'cafe'
-                      }
-                      size={16}
-                      color="#fff"
-                    />
-                  </View>
-                )}
+          <View style={styles.mediaCarouselContainer}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              style={styles.mediaCarousel}
+              onMomentumScrollEnd={(event) => handleMediaScroll(post.id, event)}
+              onScroll={(event) => handleMediaScroll(post.id, event)}
+              scrollEventThrottle={16}
+            >
+              {crawl.updates.map((update) => (
+                <View key={update.id} style={styles.mediaItem}>
+                  <Image source={{ uri: update.photoUri }} style={styles.mediaImage} />
+                  {update.drinkType && (
+                    <View style={styles.drinkBadge}>
+                      <Ionicons
+                        name={
+                          update.drinkType === 'beer'
+                            ? 'beer'
+                            : update.drinkType === 'wine'
+                            ? 'wine'
+                            : update.drinkType === 'shot'
+                            ? 'flask'
+                            : 'cafe'
+                        }
+                        size={16}
+                        color="#fff"
+                      />
+                    </View>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+            {/* Image Counter Indicator */}
+            {totalImages > 1 && (
+              <View style={styles.imageCounter}>
+                <Text style={styles.imageCounterText}>
+                  {currentIndex + 1}/{totalImages}
+                </Text>
               </View>
-            ))}
-          </ScrollView>
+            )}
+          </View>
         )}
 
         {/* Caption */}
@@ -188,7 +212,22 @@ export default function FeedScreen() {
           <View style={styles.commentsSection}>
             {post.comments.map((comment) => (
               <View key={comment.id} style={styles.comment}>
-                <Text style={styles.commentUsername}>{comment.username}: </Text>
+                <Pressable 
+                  onPress={() => {
+                    if (comment.userId) {
+                      handleUserPress(comment.userId);
+                    }
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={({ pressed }) => [
+                    styles.commentUsernameContainer,
+                    pressed && styles.commentUsernamePressed
+                  ]}
+                  disabled={!comment.userId}
+                >
+                  <Text style={styles.commentUsername}>{comment.username}</Text>
+                  <Text style={styles.commentColon}>: </Text>
+                </Pressable>
                 <Text style={styles.commentText}>{comment.text}</Text>
               </View>
             ))}
@@ -327,14 +366,32 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  mediaCarousel: {
+  mediaCarouselContainer: {
+    position: 'relative',
     marginBottom: 15,
+  },
+  mediaCarousel: {
+    marginBottom: 0,
   },
   mediaItem: {
     width: width - 30,
     height: 300,
     marginHorizontal: 15,
     position: 'relative',
+  },
+  imageCounter: {
+    position: 'absolute',
+    bottom: 10,
+    left: 25,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  imageCounterText: {
+    color: '#FFF8E7',
+    fontSize: 12,
+    fontWeight: '600',
   },
   mediaImage: {
     width: '100%',
@@ -383,15 +440,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 10,
   },
+  commentUsernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    marginRight: 4,
+  },
+  commentUsernamePressed: {
+    opacity: 0.6,
+  },
   commentUsername: {
     fontWeight: '600',
     fontSize: 14,
-    color: '#FFF8E7',
+    color: '#FF6B35',
+  },
+  commentColon: {
+    fontSize: 14,
+    color: '#D4A574',
   },
   commentText: {
     fontSize: 14,
     color: '#D4A574',
     flex: 1,
+    flexShrink: 1,
+    paddingTop: 4,
   },
   commentInputContainer: {
     flexDirection: 'row',
