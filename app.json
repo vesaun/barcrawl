@@ -41,6 +41,7 @@
     ],
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.nathan.barcrawl",
       "infoPlist": {
         "NSCameraUsageDescription": "Allow BarCrawl to access your camera to take photos during your bar crawl.",
         "NSLocationWhenInUseUsageDescription": "Allow BarCrawl to access your location to track your route and count bars visited.",
