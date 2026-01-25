@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useApp } from '@/context/AppContext';
+import { signInWithGoogle } from '@/src/lib/googleAuth';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -160,6 +161,20 @@ export default function WelcomeScreen() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      await signInWithGoogle();
+      // After successful Google sign-in, navigate to main app
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to sign in with Google. Please try again.');
+      console.error('Google sign-in error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleTestSignUp = async () => {
     // Fill form with test data (for visual feedback)
     setUsername('testuser');
@@ -168,7 +183,7 @@ export default function WelcomeScreen() {
     setEmail('test@example.com');
     setPhone('5551234567');
     setDescription('This is a test account for quick access to the app.');
-    
+
     // Directly submit with test data
     setIsSubmitting(true);
     try {
@@ -221,9 +236,15 @@ export default function WelcomeScreen() {
 
           {/* Social Sign-in Options */}
           <View style={styles.socialSignIn}>
-            <TouchableOpacity style={styles.socialButton} disabled>
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={handleGoogleSignIn}
+              disabled={isSubmitting}
+            >
               <Ionicons name="logo-google" size={20} color="#fff" />
-              <Text style={styles.socialButtonText}>Continue with Google</Text>
+              <Text style={styles.socialButtonText}>
+                {isSubmitting ? 'Signing in...' : 'Continue with Google'}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton} disabled>
               <Ionicons name="logo-apple" size={20} color="#fff" />

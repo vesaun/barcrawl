@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as Location from 'expo-location';
 import { ActiveCrawl, Crawl, User, Post, RoutePoint, Bar, Drink, CrawlUpdate, DrinkType } from '@/types';
+import { supabase } from '@/src/config/supabase';
+import { upsertUserProfile, getUserProfile } from '@/src/lib/supabaseUsers';
 
 interface SignUpData {
   username: string;
@@ -46,10 +48,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
   const [autoTerminateTimer, setAutoTerminateTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Load user from storage on mount (for MVP, we'll use in-memory state)
+  // Load user from Supabase session on mount
   useEffect(() => {
-    // In production, load from AsyncStorage or similar
-    // For MVP, start with no user (will show welcome screen)
+    // Check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        // Upsert user profile to database and get it back
+        const user = await upsertUserProfile(session.user);
+        if (user) {
+          setCurrentUser(user);
+        }
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        // Upsert user profile to database when they sign in
+        const user = await upsertUserProfile(session.user);
+        if (user) {
+          setCurrentUser(user);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = useCallback(async (data: SignUpData) => {
