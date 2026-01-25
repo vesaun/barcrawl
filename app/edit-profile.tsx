@@ -14,8 +14,8 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { useApp } from '@/context/AppContext';
+import ProfilePhotoCameraModal from '@/components/profile-photo-camera-modal';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -25,6 +25,7 @@ export default function EditProfileScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [isProfileCameraOpen, setIsProfileCameraOpen] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -62,37 +63,9 @@ export default function EditProfileScreen() {
     }
   };
 
-  const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'We need access to your camera to take a profile picture.');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      let imageUri = result.assets[0].uri;
-      
-      // Flip horizontally to correct front camera mirroring
-      // System camera UI typically uses front camera for selfies
-      try {
-        const manipulated = await ImageManipulator.manipulateAsync(
-          imageUri,
-          [{ flip: ImageManipulator.FlipType.Horizontal }],
-          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-        );
-        imageUri = manipulated.uri;
-      } catch (error) {
-        console.error('Error manipulating image:', error);
-      }
-      
-      setProfilePicture(imageUri);
-    }
+  const takePhoto = () => {
+    // Use the same expo-camera flow as crawl photos to avoid mirrored selfies.
+    setIsProfileCameraOpen(true);
   };
 
   const showImagePickerOptions = () => {
@@ -145,6 +118,14 @@ export default function EditProfileScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <ProfilePhotoCameraModal
+        visible={isProfileCameraOpen}
+        onClose={() => setIsProfileCameraOpen(false)}
+        onPhotoTaken={(uri) => {
+          setProfilePicture(uri);
+          setIsProfileCameraOpen(false);
+        }}
+      />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FF6B35" />

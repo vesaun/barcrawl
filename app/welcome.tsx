@@ -14,8 +14,8 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { useApp } from '@/context/AppContext';
+import ProfilePhotoCameraModal from '@/components/profile-photo-camera-modal';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -29,6 +29,7 @@ export default function WelcomeScreen() {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProfileCameraOpen, setIsProfileCameraOpen] = useState(false);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -49,40 +50,9 @@ export default function WelcomeScreen() {
     }
   };
 
-  const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'We need access to your camera to take a profile picture.');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      let imageUri = result.assets[0].uri;
-      
-      // Check if image was taken with front camera (typically has width > height or specific orientation)
-      // For system camera, front camera images are often mirrored, so we flip them
-      // Note: This is a heuristic - we flip if the image appears to be from front camera
-      // You can also check result.assets[0].exif?.Orientation if available
-      try {
-        // Flip horizontally to correct front camera mirroring
-        const manipulated = await ImageManipulator.manipulateAsync(
-          imageUri,
-          [{ flip: ImageManipulator.FlipType.Horizontal }],
-          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-        );
-        imageUri = manipulated.uri;
-      } catch (error) {
-        console.error('Error manipulating image:', error);
-      }
-      
-      setProfilePicture(imageUri);
-    }
+  const takePhoto = () => {
+    // Use the same expo-camera flow as crawl photos to avoid mirrored selfies.
+    setIsProfileCameraOpen(true);
   };
 
   const showImagePickerOptions = () => {
@@ -194,6 +164,14 @@ export default function WelcomeScreen() {
 
   return (
     <View style={styles.mainContainer}>
+      <ProfilePhotoCameraModal
+        visible={isProfileCameraOpen}
+        onClose={() => setIsProfileCameraOpen(false)}
+        onPhotoTaken={(uri) => {
+          setProfilePicture(uri);
+          setIsProfileCameraOpen(false);
+        }}
+      />
       {/* Decorative elements */}
       <View style={styles.decorLeft}>
         <Ionicons name="beer" size={50} color="#FF6B35" style={styles.decorIcon} />
