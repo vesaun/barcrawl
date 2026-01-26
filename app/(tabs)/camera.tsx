@@ -158,7 +158,7 @@ export default function CameraScreen() {
         {/* Top Controls */}
         <View style={styles.topControls}>
           <View style={styles.drinkButtonsContainer}>
-            <Text style={styles.drinkingLabel}>Drinking?</Text>
+            <Text style={styles.drinkingLabel}>Select a drink</Text>
             <View style={styles.drinkButtons}>
               {DRINK_TYPES.map((drink) => (
                 <TouchableOpacity
@@ -173,7 +173,7 @@ export default function CameraScreen() {
                 >
                   <Ionicons
                     name={drink.icon as any}
-                    size={20}
+                    size={18}
                     color={selectedDrink === drink.type ? '#fff' : '#666'}
                   />
                   <Text
@@ -186,6 +186,22 @@ export default function CameraScreen() {
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+
+            {/* Counts (under drink selection) */}
+            <View style={styles.metaRow}>
+              <View style={styles.metaPill}>
+                <Ionicons name="wine" size={14} color="#FF6B35" />
+                <Text style={styles.metaText}>
+                  {activeCrawl.drinks.length} drink{activeCrawl.drinks.length !== 1 ? 's' : ''}
+                </Text>
+              </View>
+              <View style={styles.metaPill}>
+                <Ionicons name="images" size={14} color="#D4A574" />
+                <Text style={styles.metaText}>
+                  {activeCrawl.updates.length} update{activeCrawl.updates.length !== 1 ? 's' : ''}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -219,15 +235,6 @@ export default function CameraScreen() {
             <Ionicons name="camera-reverse" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
-
-        {/* Add to Crawl Button (shown after photo) */}
-        {activeCrawl.updates.length > 0 && (
-          <View style={styles.updateIndicator}>
-            <Text style={styles.updateIndicatorText}>
-              {activeCrawl.updates.length} update{activeCrawl.updates.length !== 1 ? 's' : ''}
-            </Text>
-          </View>
-        )}
       </CameraView>
     </View>
   );
@@ -306,29 +313,29 @@ const styles = StyleSheet.create({
   },
   drinkButtonsContainer: {
     backgroundColor: 'rgba(62, 39, 35, 0.9)',
-    borderRadius: 15,
-    padding: 10,
+    borderRadius: 14,
+    padding: 8,
     borderWidth: 1,
     borderColor: '#6B5744',
   },
   drinkingLabel: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: 'center',
   },
   drinkButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
   },
   drinkButton: {
     backgroundColor: 'rgba(26, 26, 26, 0.8)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 18,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
@@ -341,11 +348,33 @@ const styles = StyleSheet.create({
   },
   drinkButtonText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   drinkButtonTextActive: {
     color: '#fff',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  metaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(107, 87, 68, 0.9)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  metaText: {
+    color: '#FFF8E7',
+    fontSize: 12,
+    fontWeight: '600',
   },
   bottomControls: {
     position: 'absolute',
@@ -396,21 +425,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     padding: 12,
     borderRadius: 25,
-  },
-  updateIndicator: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 120 : 100,
-    right: 15,
-    backgroundColor: 'rgba(62, 39, 35, 0.9)',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#FF6B35',
-  },
-  updateIndicatorText: {
-    color: '#FFF8E7',
-    fontSize: 12,
-    fontWeight: '600',
   },
 });
