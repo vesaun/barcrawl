@@ -10,7 +10,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Polyline } from 'react-native-maps';
 import { useApp } from '@/context/AppContext';
@@ -27,10 +27,7 @@ export default function CrawlReviewScreen() {
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    if (!activeCrawl) {
-      router.back();
-      return;
-    }
+    if (!activeCrawl) return;
 
     let isMounted = true;
 
@@ -76,7 +73,8 @@ export default function CrawlReviewScreen() {
   }, [activeCrawl, router]);
 
   if (!activeCrawl) {
-    return null;
+    // If the crawl already ended (e.g. right after upload), don't leave a blank modal.
+    return <Redirect href="/(tabs)" />;
   }
 
   const milesWalked = calculateDistance(activeCrawl.route);
@@ -106,7 +104,8 @@ export default function CrawlReviewScreen() {
       // Pass selected updates if any exist, otherwise pass empty array
       const updatesToUpload = selectedUpdates.size > 0 ? Array.from(selectedUpdates) : [];
       await uploadCrawl(title, caption || undefined, updatesToUpload.length > 0 ? updatesToUpload : undefined);
-      router.push('/(tabs)/');
+      // Replace to ensure the review modal is dismissed (avoid blank screen).
+      router.replace('/(tabs)');
     } catch (error) {
       Alert.alert('Error', 'Failed to upload crawl');
     } finally {
