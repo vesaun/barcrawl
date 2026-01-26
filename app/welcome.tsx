@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { useRouter } from 'expo-router';
+import ProfilePhotoCameraModal from '@/components/profile-photo-camera-modal';
+import { useApp } from '@/context/AppContext';
+import { signInWithGoogle } from '@/src/lib/googleAuth';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useApp } from '@/context/AppContext';
-import ProfilePhotoCameraModal from '@/components/profile-photo-camera-modal';
-import { signInWithGoogle } from '@/src/lib/googleAuth';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -134,15 +134,24 @@ export default function WelcomeScreen() {
   const handleGoogleSignIn = async () => {
     setIsSubmitting(true);
     try {
+      console.log('[Welcome] Starting Google sign-in...');
       await signInWithGoogle();
-      // After successful Google sign-in, navigate to main app
+      console.log('[Welcome] Google sign-in successful!');
+      
+      // Navigate to tabs immediately - AppContext has already set currentUser
+      console.log('[Welcome] Navigating to main app...');
       router.replace('/(tabs)');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to sign in with Google. Please try again.');
-      console.error('Google sign-in error:', error);
-    } finally {
+      console.error('[Welcome] Google sign-in failed:', error);
+      const errorMessage = error.message || 'Failed to sign in with Google. Please try again.';
+      Alert.alert(
+        'Sign-In Failed',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
       setIsSubmitting(false);
     }
+    // Don't set isSubmitting to false here - keep button disabled until redirect happens
   };
 
   const handleTestSignUp = async () => {
