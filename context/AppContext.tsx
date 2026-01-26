@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/src/config/supabase';
+import { getUserProfile, upsertUserProfile } from '@/src/lib/supabaseUsers';
+import { ActiveCrawl, Bar, Crawl, CrawlUpdate, DrinkType, Post, RoutePoint, User } from '@/types';
 import * as Location from 'expo-location';
-import { ActiveCrawl, Crawl, User, Post, RoutePoint, Bar, Drink, CrawlUpdate, DrinkType } from '@/types';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 interface SignUpData {
   username: string;
@@ -46,10 +48,66 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
   const [autoTerminateTimer, setAutoTerminateTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Load user from storage on mount (for MVP, we'll use in-memory state)
+  // Load user from Supabase session on mount
   useEffect(() => {
-    // In production, load from AsyncStorage or similar
-    // For MVP, start with no user (will show welcome screen)
+    console.log('[AppContext] Initializing auth state...');
+
+    // Check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('[AppContext] Checked for existing session:', session ? 'Found' : 'Not found');
+      if (session?.user) {
+        console.log('[AppContext] Existing session user:', {
+          id: session.user.id,
+          email: session.user.email,
+        });
+        // Just fetch the existing user profile (don't upsert on app load)
+        const user = await getUserProfile(session.user.id);
+        if (user) {
+          console.log('[AppContext] User profile loaded:', user.username);
+          setCurrentUser(user);
+        } else {
+          console.error('[AppContext] Session exists but no user profile in database - logging out');
+          // If session exists but no database record, sign them out
+          await supabase.auth.signOut();
+          setCurrentUser(null);
+        }
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[AppContext] Auth state changed:', event, session ? 'Session exists' : 'No session');
+
+      if (session?.user) {
+        console.log('[AppContext] Auth state change - User signed in:', {
+          id: session.user.id,
+          email: session.user.email,
+          event,
+        });
+
+        // Only upsert on actual sign-in events (not on initial session load)
+        if (event === 'SIGNED_IN') {
+          console.log('[AppContext] SIGNED_IN event - upserting user profile');
+          const user = await upsertUserProfile(session.user);
+          if (user) {
+            console.log('[AppContext] User profile upserted successfully:', user.username);
+            setCurrentUser(user);
+          } else {
+            console.error('[AppContext] Failed to upsert user profile');
+          }
+        } else if (event === 'INITIAL_SESSION') {
+          console.log('[AppContext] INITIAL_SESSION event - skipping upsert (already handled by getSession)');
+        }
+      } else {
+        console.log('[AppContext] Auth state change - User signed out');
+        setCurrentUser(null);
+      }
+    });
+
+    return () => {
+      console.log('[AppContext] Cleaning up auth subscription');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = useCallback(async (data: SignUpData) => {
@@ -71,11 +129,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // In production, save to AsyncStorage or backend
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    console.log('[AppContext] Logging out...');
     setCurrentUser(null);
     setActiveCrawl(null);
     setFeedPosts([]);
-    // In production, clear AsyncStorage
+    // Clear Supabase session
+    await supabase.auth.signOut();
+    console.log('[AppContext] Logged out successfully');
   }, []);
 
   const updateProfile = useCallback((data: UpdateProfileData) => {

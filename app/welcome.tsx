@@ -1,21 +1,22 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { useRouter } from 'expo-router';
+import ProfilePhotoCameraModal from '@/components/profile-photo-camera-modal';
+import { useApp } from '@/context/AppContext';
+import { signInWithGoogle } from '@/src/lib/googleAuth';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useApp } from '@/context/AppContext';
-import ProfilePhotoCameraModal from '@/components/profile-photo-camera-modal';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -130,6 +131,29 @@ export default function WelcomeScreen() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      console.log('[Welcome] Starting Google sign-in...');
+      await signInWithGoogle();
+      console.log('[Welcome] Google sign-in successful!');
+      
+      // Navigate to tabs immediately - AppContext has already set currentUser
+      console.log('[Welcome] Navigating to main app...');
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      console.error('[Welcome] Google sign-in failed:', error);
+      const errorMessage = error.message || 'Failed to sign in with Google. Please try again.';
+      Alert.alert(
+        'Sign-In Failed',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
+      setIsSubmitting(false);
+    }
+    // Don't set isSubmitting to false here - keep button disabled until redirect happens
+  };
+
   const handleTestSignUp = async () => {
     // Fill form with test data (for visual feedback)
     setUsername('testuser');
@@ -138,7 +162,7 @@ export default function WelcomeScreen() {
     setEmail('test@example.com');
     setPhone('5551234567');
     setDescription('This is a test account for quick access to the app.');
-    
+
     // Directly submit with test data
     setIsSubmitting(true);
     try {
@@ -199,9 +223,15 @@ export default function WelcomeScreen() {
 
           {/* Social Sign-in Options */}
           <View style={styles.socialSignIn}>
-            <TouchableOpacity style={styles.socialButton} disabled>
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={handleGoogleSignIn}
+              disabled={isSubmitting}
+            >
               <Ionicons name="logo-google" size={20} color="#fff" />
-              <Text style={styles.socialButtonText}>Continue with Google</Text>
+              <Text style={styles.socialButtonText}>
+                {isSubmitting ? 'Signing in...' : 'Continue with Google'}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton} disabled>
               <Ionicons name="logo-apple" size={20} color="#fff" />
