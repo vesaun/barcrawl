@@ -156,25 +156,48 @@ export default function ProfileScreen() {
         <View style={styles.drinksSection}>
           <Text style={styles.sectionTitle}>Drinks</Text>
           <View style={styles.periodSelector}>
-            {PERIODS.map((period) => (
-              <TouchableOpacity
-                key={period}
-                style={[
-                  styles.periodButton,
-                  selectedPeriod === period && styles.periodButtonActive,
-                ]}
-                onPress={() => setSelectedPeriod(period)}
-              >
-                <Text
+            <View style={styles.periodRow}>
+              {(['day', 'week', 'month'] as const).map((period) => (
+                <TouchableOpacity
+                  key={period}
                   style={[
-                    styles.periodButtonText,
-                    selectedPeriod === period && styles.periodButtonTextActive,
+                    styles.periodButton,
+                    selectedPeriod === period && styles.periodButtonActive,
                   ]}
+                  onPress={() => setSelectedPeriod(period)}
                 >
-                  {period.charAt(0).toUpperCase() + period.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.periodButtonText,
+                      selectedPeriod === period && styles.periodButtonTextActive,
+                    ]}
+                  >
+                    {period.charAt(0).toUpperCase() + period.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.periodRow}>
+              {(['year', 'lifetime'] as const).map((period) => (
+                <TouchableOpacity
+                  key={period}
+                  style={[
+                    styles.periodButton,
+                    selectedPeriod === period && styles.periodButtonActive,
+                  ]}
+                  onPress={() => setSelectedPeriod(period)}
+                >
+                  <Text
+                    style={[
+                      styles.periodButtonText,
+                      selectedPeriod === period && styles.periodButtonTextActive,
+                    ]}
+                  >
+                    {period.charAt(0).toUpperCase() + period.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
           <View style={styles.drinksCountContainer}>
               <Ionicons name="wine" size={40} color="#FF6B35" />
@@ -476,11 +499,17 @@ const styles = StyleSheet.create({
     color: '#FFF8E7',
   },
   periodSelector: {
-    flexDirection: 'row',
     gap: 10,
     marginBottom: 20,
   },
+  periodRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+  },
   periodButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 20,
