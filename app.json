@@ -45,7 +45,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Allow BarCrawl to access your camera to take photos during your bar crawl.",
         "NSLocationWhenInUseUsageDescription": "Allow BarCrawl to access your location to track your route and count bars visited.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow BarCrawl to access your location to track your route and count bars visited."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow BarCrawl to access your location to track your route and count bars visited.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -61,12 +62,31 @@
         "CAMERA",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
-      ]
+        "ACCESS_BACKGROUND_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.nathan.barcrawl"
     },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c03f6787-c2ab-40a7-8d76-42d998adb981"
+      }
     }
   }
 }
