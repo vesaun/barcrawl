@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Polyline } from 'react-native-maps';
 import { useApp } from '@/context/AppContext';
 import { Crawl, Post } from '@/types';
+import FullscreenCarouselModal from '@/components/fullscreen-carousel-modal';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ export default function UserProfileScreen() {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [currentImageIndex, setCurrentImageIndex] = useState<Record<string, number>>({});
+  const [fullscreenPostId, setFullscreenPostId] = useState<string | null>(null);
 
   // For MVP, we'll show the current user's profile or find user from feed
   // In production, this would fetch user data by userId
@@ -159,9 +161,17 @@ export default function UserProfileScreen() {
               const showComments = expandedComments.has(post.id);
               const currentIndex = currentImageIndex[post.id] ?? 0;
               const totalImages = post.crawl.updates.length;
+              const imageUris = post.crawl.updates.map((u) => u.photoUri);
+              const isFullscreenOpen = fullscreenPostId === post.id;
               
               return (
                 <View key={post.id} style={styles.postCard}>
+                  <FullscreenCarouselModal
+                    visible={isFullscreenOpen}
+                    imageUris={imageUris}
+                    initialIndex={currentIndex}
+                    onClose={() => setFullscreenPostId(null)}
+                  />
                   {/* Post Title */}
                   <Text style={styles.postTitle}>
                     {post.crawl.title || `${post.crawl.city || 'Unknown'} Bar Crawl`}
@@ -197,7 +207,9 @@ export default function UserProfileScreen() {
                       >
                         {post.crawl.updates.map((update) => (
                           <View key={update.id} style={styles.mediaItem}>
-                            <Image source={{ uri: update.photoUri }} style={styles.mediaImage} />
+                            <View style={styles.mediaFrame}>
+                              <Image source={{ uri: update.photoUri }} style={styles.mediaImage} resizeMode="contain" />
+                            </View>
                             {update.drinkType && (
                               <View style={styles.drinkBadge}>
                                 <Ionicons
@@ -226,6 +238,13 @@ export default function UserProfileScreen() {
                           </Text>
                         </View>
                       )}
+                      <TouchableOpacity
+                        style={styles.fullscreenButton}
+                        onPress={() => setFullscreenPostId(post.id)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <Ionicons name="expand-outline" size={18} color="#FFF8E7" />
+                      </TouchableOpacity>
                     </View>
                   )}
 
@@ -753,10 +772,16 @@ const styles = StyleSheet.create({
     marginRight: 10,
     position: 'relative',
   },
-  mediaImage: {
+  mediaFrame: {
     width: '100%',
     height: '100%',
     borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#1A1A1A',
+  },
+  mediaImage: {
+    width: '100%',
+    height: '100%',
   },
   imageCounter: {
     position: 'absolute',
@@ -771,6 +796,15 @@ const styles = StyleSheet.create({
     color: '#FFF8E7',
     fontSize: 12,
     fontWeight: '600',
+  },
+  fullscreenButton: {
+    position: 'absolute',
+    bottom: 10,
+    right: 25,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 18,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   drinkBadge: {
     position: 'absolute',

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Polyline } from 'react-native-maps';
 import { useApp } from '@/context/AppContext';
 import { Post } from '@/types';
+import FullscreenCarouselModal from '@/components/fullscreen-carousel-modal';
 
 const { width } = Dimensions.get('window');
 
@@ -24,6 +25,7 @@ export default function FeedScreen() {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [currentImageIndex, setCurrentImageIndex] = useState<Record<string, number>>({});
+  const [fullscreenPostId, setFullscreenPostId] = useState<string | null>(null);
 
   const handleUserPress = (userId: string) => {
     router.push(`/user/${userId}`);
@@ -66,9 +68,17 @@ export default function FeedScreen() {
     const showComments = expandedComments.has(post.id);
     const currentIndex = currentImageIndex[post.id] ?? 0;
     const totalImages = crawl.updates.length;
+    const imageUris = crawl.updates.map((u) => u.photoUri);
+    const isFullscreenOpen = fullscreenPostId === post.id;
 
     return (
       <View key={post.id} style={styles.postContainer}>
+        <FullscreenCarouselModal
+          visible={isFullscreenOpen}
+          imageUris={imageUris}
+          initialIndex={currentIndex}
+          onClose={() => setFullscreenPostId(null)}
+        />
         {/* User Header */}
         <TouchableOpacity
           style={styles.userHeader}
@@ -145,7 +155,9 @@ export default function FeedScreen() {
             >
               {crawl.updates.map((update) => (
                 <View key={update.id} style={styles.mediaItem}>
-                  <Image source={{ uri: update.photoUri }} style={styles.mediaImage} />
+                  <View style={styles.mediaFrame}>
+                    <Image source={{ uri: update.photoUri }} style={styles.mediaImage} resizeMode="contain" />
+                  </View>
                   {update.drinkType && (
                     <View style={styles.drinkBadge}>
                       <Ionicons
@@ -174,6 +186,14 @@ export default function FeedScreen() {
                 </Text>
               </View>
             )}
+            {/* Fullscreen */}
+            <TouchableOpacity
+              style={styles.fullscreenButton}
+              onPress={() => setFullscreenPostId(post.id)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="expand-outline" size={18} color="#FFF8E7" />
+            </TouchableOpacity>
           </View>
         )}
 
@@ -393,10 +413,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  mediaImage: {
+  mediaFrame: {
     width: '100%',
     height: '100%',
     borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#1A1A1A',
+  },
+  mediaImage: {
+    width: '100%',
+    height: '100%',
+  },
+  fullscreenButton: {
+    position: 'absolute',
+    bottom: 10,
+    right: 25,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 18,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   drinkBadge: {
     position: 'absolute',
