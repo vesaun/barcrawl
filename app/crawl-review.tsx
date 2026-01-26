@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Polyline } from 'react-native-maps';
 import { useApp } from '@/context/AppContext';
+import * as Location from 'expo-location';
 
 const { width } = Dimensions.get('window');
 
@@ -31,12 +32,47 @@ export default function CrawlReviewScreen() {
       return;
     }
 
-    // Auto-generate title
-    const city = 'New York'; // Would be determined from location in production
-    setTitle(`${city} Bar Crawl`);
+    let isMounted = true;
+
+    // Auto-generate title from user's current city (fallback to "Bar Crawl")
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          if (isMounted) setTitle('Bar Crawl');
+          return;
+        }
+
+        const lastPoint = activeCrawl.route[activeCrawl.route.length - 1];
+        const coords = lastPoint
+          ? { latitude: lastPoint.latitude, longitude: lastPoint.longitude }
+          : (await Location.getCurrentPositionAsync()).coords;
+
+        const places = await Location.reverseGeocodeAsync({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
+
+        const place = places?.[0];
+        const city =
+          place?.city ||
+          place?.subregion ||
+          place?.region ||
+          undefined;
+
+        if (isMounted) setTitle(`${city ? `${city} ` : ''}Bar Crawl`);
+      } catch (e) {
+        console.error('Failed to determine city for crawl title:', e);
+        if (isMounted) setTitle('Bar Crawl');
+      }
+    })();
 
     // Select all updates by default
     setSelectedUpdates(new Set(activeCrawl.updates.map((u) => u.id)));
+
+    return () => {
+      isMounted = false;
+    };
   }, [activeCrawl, router]);
 
   if (!activeCrawl) {

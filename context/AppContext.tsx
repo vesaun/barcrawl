@@ -299,12 +299,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const milesWalked = calculateDistance(activeCrawl.route);
 
+    // Best-effort: determine city from last known location
+    let city: string | undefined = undefined;
+    try {
+      const lastPoint = activeCrawl.route[activeCrawl.route.length - 1];
+      const coords = lastPoint
+        ? { latitude: lastPoint.latitude, longitude: lastPoint.longitude }
+        : (await Location.getCurrentPositionAsync()).coords;
+
+      const places = await Location.reverseGeocodeAsync({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+      const place = places?.[0];
+      city = place?.city || place?.subregion || place?.region || undefined;
+    } catch (e) {
+      console.error('Failed to determine city for crawl:', e);
+    }
+
     const crawl: Crawl = {
       id: activeCrawl.id,
       userId: currentUser.id,
       title,
       caption,
-      city: 'New York', // Would be determined from location in production
+      city,
       startTime: activeCrawl.startTime,
       endTime: Date.now(),
       route: activeCrawl.route,
