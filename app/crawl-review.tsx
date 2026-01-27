@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Polyline } from 'react-native-maps';
 import { useApp } from '@/context/AppContext';
@@ -25,6 +25,14 @@ export default function CrawlReviewScreen() {
   const [caption, setCaption] = useState('');
   const [selectedUpdates, setSelectedUpdates] = useState<Set<string>>(new Set());
   const [isUploading, setIsUploading] = useState(false);
+  const didDismissRef = useRef(false);
+
+  const dismissReview = () => {
+    if (didDismissRef.current) return;
+    didDismissRef.current = true;
+    // Dismiss this modal without dispatching POP_TO_TOP actions.
+    router.back();
+  };
 
   useEffect(() => {
     if (!activeCrawl) return;
@@ -72,9 +80,17 @@ export default function CrawlReviewScreen() {
     };
   }, [activeCrawl, router]);
 
+  useEffect(() => {
+    // If the crawl ends (e.g. right after upload), dismiss this modal instead of
+    // redirecting and leaving duplicated navigation stacks behind it.
+    if (!activeCrawl) {
+      dismissReview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCrawl]);
+
   if (!activeCrawl) {
-    // If the crawl already ended (e.g. right after upload), don't leave a blank modal.
-    return <Redirect href="/(tabs)" />;
+    return null;
   }
 
   const milesWalked = calculateDistance(activeCrawl.route);
@@ -104,8 +120,7 @@ export default function CrawlReviewScreen() {
       // Pass selected updates if any exist, otherwise pass empty array
       const updatesToUpload = selectedUpdates.size > 0 ? Array.from(selectedUpdates) : [];
       await uploadCrawl(title, caption || undefined, updatesToUpload.length > 0 ? updatesToUpload : undefined);
-      // Replace to ensure the review modal is dismissed (avoid blank screen).
-      router.replace('/(tabs)');
+      dismissReview();
     } catch (error) {
       Alert.alert('Error', 'Failed to upload crawl');
     } finally {

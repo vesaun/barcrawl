@@ -1,8 +1,10 @@
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import { supabase } from '@/src/config/supabase';
 import { getUserProfile, upsertUserProfile } from '@/src/lib/supabaseUsers';
 import { ActiveCrawl, Bar, Crawl, CrawlUpdate, DrinkType, Post, RoutePoint, User } from '@/types';
-import * as Location from 'expo-location';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 interface SignUpData {
   username: string;
@@ -25,6 +27,10 @@ interface AppContextType {
   currentUser: User | null;
   activeCrawl: ActiveCrawl | null;
   feedPosts: Post[];
+  autoTapOutPendingReview: boolean;
+  clearAutoTapOutPendingReview: () => void;
+  postUploadNavigateToFeed: boolean;
+  clearPostUploadNavigateToFeed: () => void;
   signUp: (data: SignUpData) => Promise<void>;
   logout: () => void;
   updateProfile: (data: UpdateProfileData) => void;
@@ -41,12 +47,71 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const STORAGE_KEYS = {
+  activeCrawl: 'barcrawl:activeCrawl',
+  lastActiveTimestamp: 'barcrawl:lastActiveTimestamp',
+  reviewPromptedCrawlId: 'barcrawl:reviewPromptedCrawlId',
+} as const;
+
+// For testing (2 minutes). Change to 2 * 60 * 60 * 1000 for production.
+const INACTIVITY_THRESHOLD_MS = 30 * 1000;
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeCrawl, setActiveCrawl] = useState<ActiveCrawl | null>(null);
   const [feedPosts, setFeedPosts] = useState<Post[]>([]);
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
-  const [autoTerminateTimer, setAutoTerminateTimer] = useState<NodeJS.Timeout | null>(null);
+  const [autoTerminateTimer, setAutoTerminateTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [autoTapOutPendingReview, setAutoTapOutPendingReview] = useState(false);
+  const [postUploadNavigateToFeed, setPostUploadNavigateToFeed] = useState(false);
+
+  const clearAutoTapOutPendingReview = useCallback(() => {
+    setAutoTapOutPendingReview(false);
+  }, []);
+
+  const clearPostUploadNavigateToFeed = useCallback(() => {
+    setPostUploadNavigateToFeed(false);
+  }, []);
+
+  const persistActiveCrawl = useCallback(async (crawl: ActiveCrawl | null) => {
+    try {
+      if (!crawl) {
+        await AsyncStorage.removeItem(STORAGE_KEYS.activeCrawl);
+        return;
+      }
+      await AsyncStorage.setItem(STORAGE_KEYS.activeCrawl, JSON.stringify(crawl));
+    } catch (e) {
+      console.error('Failed to persist active crawl:', e);
+    }
+  }, []);
+
+  const persistLastActiveTimestamp = useCallback(async (ts: number) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.lastActiveTimestamp, String(ts));
+    } catch (e) {
+      console.error('Failed to persist lastActiveTimestamp:', e);
+    }
+  }, []);
+
+  const clearPersistedCrawlState = useCallback(async () => {
+    try {
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.activeCrawl,
+        STORAGE_KEYS.lastActiveTimestamp,
+        STORAGE_KEYS.reviewPromptedCrawlId,
+      ]);
+    } catch (e) {
+      console.error('Failed to clear persisted crawl state:', e);
+    }
+  }, []);
+
+  const markReviewPromptedForCrawl = useCallback(async (crawlId: string) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.reviewPromptedCrawlId, crawlId);
+    } catch (e) {
+      console.error('Failed to persist reviewPromptedCrawlId:', e);
+    }
+  }, []);
 
   // Load user from Supabase session on mount
   useEffect(() => {
@@ -110,6 +175,78 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Restore active crawl on app start and check inactivity.
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const [storedCrawl, storedLastActive, storedPrompted] = await AsyncStorage.multiGet([
+          STORAGE_KEYS.activeCrawl,
+          STORAGE_KEYS.lastActiveTimestamp,
+          STORAGE_KEYS.reviewPromptedCrawlId,
+        ]);
+
+        const crawlJson = storedCrawl?.[1];
+        const lastActiveStr = storedLastActive?.[1];
+        const promptedCrawlId = storedPrompted?.[1] || null;
+
+        if (crawlJson) {
+          const parsed: ActiveCrawl = JSON.parse(crawlJson);
+          if (isMounted) setActiveCrawl(parsed);
+
+          const lastActive = lastActiveStr ? Number(lastActiveStr) : undefined;
+          const now = Date.now();
+          if (lastActive && now - lastActive >= INACTIVITY_THRESHOLD_MS) {
+            // Guard: only prompt once per crawl id
+            if (promptedCrawlId !== parsed.id) {
+              await markReviewPromptedForCrawl(parsed.id);
+              if (isMounted) setAutoTapOutPendingReview(true);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to restore active crawl:', e);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Track app background/foreground to update lastActiveTimestamp and detect timeouts.
+  useEffect(() => {
+    const handleAppStateChange = async (nextState: AppStateStatus) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        // User "closed" the app (or sent to background) — reset inactivity timer.
+        await persistLastActiveTimestamp(Date.now());
+        await persistActiveCrawl(activeCrawl);
+      }
+
+      if (nextState === 'active') {
+        // App opened again — check timeout against lastActiveTimestamp.
+        try {
+          const lastActiveStr = await AsyncStorage.getItem(STORAGE_KEYS.lastActiveTimestamp);
+          const lastActive = lastActiveStr ? Number(lastActiveStr) : undefined;
+          if (!lastActive || !activeCrawl) return;
+          if (Date.now() - lastActive >= INACTIVITY_THRESHOLD_MS) {
+            const promptedCrawlId = await AsyncStorage.getItem(STORAGE_KEYS.reviewPromptedCrawlId);
+            if (promptedCrawlId !== activeCrawl.id) {
+              await markReviewPromptedForCrawl(activeCrawl.id);
+              setAutoTapOutPendingReview(true);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to check inactivity timeout:', e);
+        }
+      }
+    };
+
+    const sub = AppState.addEventListener('change', handleAppStateChange);
+    return () => sub.remove();
+  }, [activeCrawl, markReviewPromptedForCrawl, persistActiveCrawl, persistLastActiveTimestamp]);
+
   const signUp = useCallback(async (data: SignUpData) => {
     const newUser: User = {
       id: `user_${Date.now()}`,
@@ -134,10 +271,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null);
     setActiveCrawl(null);
     setFeedPosts([]);
-    // Clear Supabase session
+    await clearPersistedCrawlState();
     await supabase.auth.signOut();
     console.log('[AppContext] Logged out successfully');
-  }, []);
+  }, [clearPersistedCrawlState]);
 
   const updateProfile = useCallback((data: UpdateProfileData) => {
     setCurrentUser((prev) => {
@@ -265,6 +402,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
 
       setActiveCrawl(newCrawl);
+      await persistActiveCrawl(newCrawl);
+      await persistLastActiveTimestamp(Date.now());
 
       // Set auto-terminate timer (2 hours)
       const timer = setTimeout(() => {
@@ -278,7 +417,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.error('Error starting crawl:', error);
       throw error;
     }
-  }, [detectNearbyBars]);
+  }, [detectNearbyBars, persistActiveCrawl, persistLastActiveTimestamp]);
 
   const endCrawl = useCallback(async () => {
     if (locationSubscription) {
@@ -290,7 +429,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setAutoTerminateTimer(null);
     }
     setActiveCrawl(null);
-  }, [locationSubscription, autoTerminateTimer]);
+    await clearPersistedCrawlState();
+  }, [locationSubscription, autoTerminateTimer, clearPersistedCrawlState]);
 
   const addUpdate = useCallback(async (photoUri: string, drinkType?: DrinkType) => {
     if (!activeCrawl) return;
@@ -319,6 +459,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         drinks,
         lastActivityTime: Date.now(),
       });
+      await persistActiveCrawl({
+        ...activeCrawl,
+        updates: [...activeCrawl.updates, update],
+        drinks,
+        lastActivityTime: Date.now(),
+      });
 
       // Reset auto-terminate timer
       if (autoTerminateTimer) {
@@ -333,7 +479,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error adding update:', error);
     }
-  }, [activeCrawl, autoTerminateTimer]);
+  }, [activeCrawl, autoTerminateTimer, persistActiveCrawl]);
 
   const tapOut = useCallback(async () => {
     if (!activeCrawl) return;
@@ -347,6 +493,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setAutoTerminateTimer(null);
     }
     // Keep activeCrawl so review screen can access it
+    await persistActiveCrawl(activeCrawl);
   }, [activeCrawl, locationSubscription, autoTerminateTimer]);
 
   const uploadCrawl = useCallback(async (title: string, caption?: string, selectedUpdates?: string[]) => {
@@ -416,6 +563,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     setFeedPosts((prev) => [post, ...prev]);
+
+    // After posting, bring user back to Feed tab (top post is theirs).
+    setPostUploadNavigateToFeed(true);
     
     // End crawl after upload
     endCrawl();
@@ -502,6 +652,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         activeCrawl,
         feedPosts,
+        autoTapOutPendingReview,
+        clearAutoTapOutPendingReview,
+        postUploadNavigateToFeed,
+        clearPostUploadNavigateToFeed,
         signUp,
         logout,
         updateProfile,
