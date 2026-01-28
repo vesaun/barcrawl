@@ -1,10 +1,10 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Location from 'expo-location';
 import { supabase } from '@/src/config/supabase';
 import { getUserProfile, upsertUserProfile } from '@/src/lib/supabaseUsers';
 import { ActiveCrawl, Bar, Crawl, CrawlUpdate, DrinkType, Post, RoutePoint, User } from '@/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 
 interface SignUpData {
   username: string;
