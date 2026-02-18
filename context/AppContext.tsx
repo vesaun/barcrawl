@@ -1,5 +1,6 @@
 import { supabase } from '@/src/config/supabase';
 import { getUserProfile, upsertUserProfile } from '@/src/lib/supabaseUsers';
+import { createCrawl } from '@/src/lib/supabaseCrawls';
 import { ActiveCrawl, Bar, Crawl, CrawlUpdate, DrinkType, Post, RoutePoint, User } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
@@ -348,6 +349,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const startTime = Date.now();
       const crawlId = `crawl_${startTime}`;
 
+      // Get initial location to start the route
+      const initialLocation = await Location.getCurrentPositionAsync();
+      const initialPoint: RoutePoint = {
+        latitude: initialLocation.coords.latitude,
+        longitude: initialLocation.coords.longitude,
+        timestamp: startTime,
+      };
+
       // Start location tracking
       const subscription = await Location.watchPositionAsync(
         {
@@ -394,7 +403,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newCrawl: ActiveCrawl = {
         id: crawlId,
         startTime,
-        route: [],
+        route: [initialPoint],
         updates: [],
         drinks: [],
         barsHit: [],
@@ -542,7 +551,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: Date.now(),
     };
 
-    // Add to user's crawls
+    // Save to Supabase
+    console.log('[UploadCrawl] Saving crawl to Supabase...');
+    const result = await createCrawl(crawl);
+
+    if (result) {
+      console.log('[UploadCrawl] Crawl saved successfully to Supabase!', result.crawlId);
+    } else {
+      console.error('[UploadCrawl] Failed to save crawl to Supabase');
+      // Continue anyway to update local state
+    }
+
+    // Add to user's crawls (local state)
     setCurrentUser((prev) => {
       if (!prev) return null;
       return {
@@ -551,7 +571,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    // Add to feed
+    // Add to feed (local state)
     const post: Post = {
       id: `post_${Date.now()}`,
       crawl,
@@ -566,7 +586,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // After posting, bring user back to Feed tab (top post is theirs).
     setPostUploadNavigateToFeed(true);
-    
+
     // End crawl after upload
     endCrawl();
   }, [activeCrawl, currentUser, calculateDistance, endCrawl]);

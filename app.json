@@ -37,6 +37,9 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow BarCrawl to access your location to track your route and count bars visited."
         }
+      ],
+      [
+        "expo-apple-authentication"
       ]
     ],
     "ios": {
@@ -83,7 +86,9 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {},
+      "router": {
+        "origin": false
+      },
       "eas": {
         "projectId": "c03f6787-c2ab-40a7-8d76-42d998adb981"
       }

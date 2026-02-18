@@ -6,10 +6,6 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AppProvider } from '@/context/AppContext';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
@@ -23,6 +19,7 @@ function RootLayoutNav() {
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         <Stack.Screen name="crawl-review" options={{ presentation: 'modal', title: 'Review Crawl' }} />
         <Stack.Screen name="user/[userId]" options={{ presentation: 'card', headerShown: false }} />
+        <Stack.Screen name="+not-found" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

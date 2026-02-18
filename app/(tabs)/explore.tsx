@@ -5,15 +5,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useApp } from '@/context/AppContext';
 import { Bar } from '@/types';
 
-const { width, height } = Dimensions.get('window');
 
 export default function ExploreBarsScreen() {
   const { currentUser } = useApp();
@@ -139,7 +137,6 @@ export default function ExploreBarsScreen() {
 
       <MapView
         ref={mapRef}
-        provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={initialRegion}
         mapType="standard"

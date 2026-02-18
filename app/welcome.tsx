@@ -1,10 +1,11 @@
 import ProfilePhotoCameraModal from '@/components/profile-photo-camera-modal';
 import { useApp } from '@/context/AppContext';
 import { signInWithGoogle } from '@/src/lib/googleAuth';
+import { signInWithApple, isAppleAuthAvailable } from '@/src/lib/appleAuth';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   Image,
@@ -21,7 +22,7 @@ import {
 export default function WelcomeScreen() {
   const router = useRouter();
   const { signUp } = useApp();
-  
+
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
@@ -31,6 +32,12 @@ export default function WelcomeScreen() {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProfileCameraOpen, setIsProfileCameraOpen] = useState(false);
+  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
+
+  // Check if Apple Sign In is available on mount
+  useEffect(() => {
+    isAppleAuthAvailable().then(setAppleAuthAvailable);
+  }, []);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -137,13 +144,36 @@ export default function WelcomeScreen() {
       console.log('[Welcome] Starting Google sign-in...');
       await signInWithGoogle();
       console.log('[Welcome] Google sign-in successful!');
-      
+
       // Navigate to tabs immediately - AppContext has already set currentUser
       console.log('[Welcome] Navigating to main app...');
       router.replace('/(tabs)');
     } catch (error: any) {
       console.error('[Welcome] Google sign-in failed:', error);
       const errorMessage = error.message || 'Failed to sign in with Google. Please try again.';
+      Alert.alert(
+        'Sign-In Failed',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
+      setIsSubmitting(false);
+    }
+    // Don't set isSubmitting to false here - keep button disabled until redirect happens
+  };
+
+  const handleAppleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      console.log('[Welcome] Starting Apple sign-in...');
+      await signInWithApple();
+      console.log('[Welcome] Apple sign-in successful!');
+
+      // Navigate to tabs immediately - AppContext has already set currentUser
+      console.log('[Welcome] Navigating to main app...');
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      console.error('[Welcome] Apple sign-in failed:', error);
+      const errorMessage = error.message || 'Failed to sign in with Apple. Please try again.';
       Alert.alert(
         'Sign-In Failed',
         errorMessage,
@@ -233,10 +263,18 @@ export default function WelcomeScreen() {
                 {isSubmitting ? 'Signing in...' : 'Continue with Google'}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton} disabled>
-              <Ionicons name="logo-apple" size={20} color="#fff" />
-              <Text style={styles.socialButtonText}>Continue with Apple</Text>
-            </TouchableOpacity>
+            {appleAuthAvailable && (
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={handleAppleSignIn}
+                disabled={isSubmitting}
+              >
+                <Ionicons name="logo-apple" size={20} color="#fff" />
+                <Text style={styles.socialButtonText}>
+                  {isSubmitting ? 'Signing in...' : 'Continue with Apple'}
+                </Text>
+              </TouchableOpacity>
+            )}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>OR</Text>

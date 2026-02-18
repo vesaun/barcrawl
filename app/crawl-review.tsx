@@ -204,7 +204,7 @@ export default function CrawlReviewScreen() {
         </View>
 
         {/* Route Map */}
-        {activeCrawl.route.length > 0 && (
+        {activeCrawl.route.length > 0 && activeCrawl.route[0] && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Route</Text>
             <View style={styles.mapContainer}>

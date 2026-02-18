@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Polyline } from 'react-native-maps';
 import { useApp } from '@/context/AppContext';
 import { Crawl } from '@/types';
+import { testCreateCrawl } from '@/src/lib/supabaseCrawls';
 
 const { width } = Dimensions.get('window');
 
@@ -88,6 +89,17 @@ export default function ProfileScreen() {
     router.push('/edit-profile');
   };
 
+  const handleTestSupabase = async () => {
+    setShowSettingsMenu(false);
+    console.log('[Profile] Testing Supabase insert...');
+    const result = await testCreateCrawl(currentUser.id);
+    if (result) {
+      alert('Success! Crawl saved to Supabase. Check console for details.');
+    } else {
+      alert('Failed to save crawl. Check console for errors.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -113,6 +125,13 @@ export default function ProfileScreen() {
             >
               <Ionicons name="create-outline" size={20} color="#FFF8E7" />
               <Text style={styles.settingsMenuText}>Edit Profile</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.settingsMenuItem}
+              onPress={handleTestSupabase}
+            >
+              <Ionicons name="cloud-upload-outline" size={20} color="#4CAF50" />
+              <Text style={styles.settingsMenuText}>Test Supabase</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.settingsMenuItem}
