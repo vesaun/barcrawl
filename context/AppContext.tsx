@@ -1,5 +1,5 @@
 import { supabase } from '@/src/config/supabase';
-import { getUserProfile, upsertUserProfile } from '@/src/lib/supabaseUsers';
+import { getUserProfile, upsertUserProfile, setOnCrawlsLoadedCallback } from '@/src/lib/supabaseUsers';
 import { uploadCrawlToSupabase } from '@/src/lib/supabaseCrawls';
 import { ActiveCrawl, Bar, Crawl, CrawlUpdate, DrinkType, Post, RoutePoint, User } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -118,6 +118,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Load user from Supabase session on mount
   useEffect(() => {
     console.log('[AppContext] Initializing auth state...');
+
+    // Set up callback to update user crawls when they finish loading in background
+    setOnCrawlsLoadedCallback((userId, crawls) => {
+      console.log('[AppContext] Crawls loaded callback triggered for user:', userId, 'with', crawls.length, 'crawls');
+      setCurrentUser((prev) => {
+        if (!prev || prev.id !== userId) return prev;
+        return { ...prev, crawls };
+      });
+    });
 
     // Check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -442,7 +451,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const location = await Location.getCurrentPositionAsync();
       
       const update: CrawlUpdate = {
-        id: `update_${Date.now()}`,
+        id: Crypto.randomUUID(),
         photoUri,
         drinkType,
         timestamp: Date.now(),
