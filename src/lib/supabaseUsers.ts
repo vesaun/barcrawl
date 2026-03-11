@@ -1,6 +1,14 @@
 import { supabase } from '@/src/config/supabase';
 import { User } from '@/types';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { fetchUserCrawls } from './supabaseCrawls';
+
+// Callback to update user crawls after background fetch
+let onCrawlsLoadedCallback: ((userId: string, crawls: any[]) => void) | null = null;
+
+export const setOnCrawlsLoadedCallback = (callback: (userId: string, crawls: any[]) => void) => {
+  onCrawlsLoadedCallback = callback;
+};
 
 /**
  * Creates or updates a user profile in the Supabase database
@@ -13,6 +21,7 @@ export const upsertUserProfile = async (supabaseUser: SupabaseUser): Promise<Use
     // 1. Prepare data (Removed stats fields to prevent overwriting progress)
     const userData = {
       id: supabaseUser.id,
+      auth_id: supabaseUser.id, // Add auth_id to match RLS policy
       username: supabaseUser.user_metadata?.username || supabaseUser.email?.split('@')[0] || 'user',
       display_name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || 'User',
       age: supabaseUser.user_metadata?.age || 21,
@@ -21,23 +30,21 @@ export const upsertUserProfile = async (supabaseUser: SupabaseUser): Promise<Use
       profile_picture_url: supabaseUser.user_metadata?.avatar_url || supabaseUser.user_metadata?.picture,
       bio: supabaseUser.user_metadata?.description || null,
       updated_at: new Date().toISOString(),
-      // REMOVED: total_drinks, total_crawls, etc. 
+      // REMOVED: total_drinks, total_crawls, etc.
       // Let the database defaults handle these!
     };
 
     // 2. Perform Upsert (fire without awaiting)
     console.log('[UpsertUser] Firing upsert...');
-    supabase
+    void supabase
       .from('users')
       .upsert(userData, { onConflict: 'id' })
       .then(() => console.log('[UpsertUser] Background upsert succeeded'))
-      .catch((err) => console.error('[UpsertUser] Background upsert failed:', err));
+      .catch((err: any) => console.error('[UpsertUser] Background upsert failed:', err));
 
     console.log('[UpsertUser] Success (upsert in background)');
 
-    // 3. Return User Object
-    // Note: This returns 0 for stats locally, but the DB preserves real data.
-    // If you need real stats immediately, you'd need to do a .select() fetch here.
+    // 3. Return User Object immediately (without waiting for crawls)
     const user: User = {
       id: userData.id,
       username: userData.username,
@@ -49,8 +56,19 @@ export const upsertUserProfile = async (supabaseUser: SupabaseUser): Promise<Use
       description: userData.bio,
       followersCount: 0, // Placeholder until you fetch real data
       friendsCount: 0,   // Placeholder until you fetch real data
-      crawls: [],
+      crawls: [], // Load crawls in background
     };
+
+    // 4. Fetch crawls in the background (don't block login)
+    fetchUserCrawls(userData.id)
+      .then((crawls) => {
+        console.log('[UpsertUser] Background crawl fetch complete:', crawls.length, 'crawls');
+        // Notify the callback if set (AppContext will update the user state)
+        if (onCrawlsLoadedCallback) {
+          onCrawlsLoadedCallback(userData.id, crawls);
+        }
+      })
+      .catch((err: any) => console.error('[UpsertUser] Background crawl fetch failed:', err));
 
     return user;
 
@@ -77,6 +95,7 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
 
     if (!data) return null;
 
+    // Return user profile immediately without crawls (load them lazily in the background)
     const user: User = {
       id: data.id,
       username: data.username,
@@ -88,8 +107,19 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
       description: data.bio,
       followersCount: 0,
       friendsCount: 0,
-      crawls: [],
+      crawls: [], // Load crawls lazily
     };
+
+    // Fetch crawls in the background (don't block login)
+    void fetchUserCrawls(userId)
+      .then((crawls) => {
+        console.log('[GetUserProfile] Background crawl fetch complete:', crawls.length, 'crawls');
+        // Notify the callback if set (AppContext will update the user state)
+        if (onCrawlsLoadedCallback) {
+          onCrawlsLoadedCallback(userId, crawls);
+        }
+      })
+      .catch((err: any) => console.error('[GetUserProfile] Background crawl fetch failed:', err));
 
     return user;
   } catch (error) {

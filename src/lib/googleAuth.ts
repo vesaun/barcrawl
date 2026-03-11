@@ -6,7 +6,10 @@ import { supabase } from '@/src/config/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const redirectTo = makeRedirectUri();
+const redirectTo = makeRedirectUri({
+  scheme: 'barcrawl',
+  path: 'auth/callback',
+});
 
 const createSessionFromUrl = async (url: string) => {
   console.log('[OAuth] Processing callback URL:', url);

@@ -1,8 +1,10 @@
 import { supabase } from '@/src/config/supabase';
-import { getUserProfile, upsertUserProfile } from '@/src/lib/supabaseUsers';
+import { getUserProfile, upsertUserProfile, setOnCrawlsLoadedCallback } from '@/src/lib/supabaseUsers';
+import { uploadCrawlToSupabase } from '@/src/lib/supabaseCrawls';
 import { ActiveCrawl, Bar, Crawl, CrawlUpdate, DrinkType, Post, RoutePoint, User } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
+import * as Crypto from 'expo-crypto';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 
@@ -116,6 +118,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Load user from Supabase session on mount
   useEffect(() => {
     console.log('[AppContext] Initializing auth state...');
+
+    // Set up callback to update user crawls when they finish loading in background
+    setOnCrawlsLoadedCallback((userId, crawls) => {
+      console.log('[AppContext] Crawls loaded callback triggered for user:', userId, 'with', crawls.length, 'crawls');
+      setCurrentUser((prev) => {
+        if (!prev || prev.id !== userId) return prev;
+        return { ...prev, crawls };
+      });
+    });
 
     // Check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -346,7 +357,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       const startTime = Date.now();
-      const crawlId = `crawl_${startTime}`;
+      // Generate a proper UUID for Supabase
+      const crawlId = Crypto.randomUUID();
 
       // Start location tracking
       const subscription = await Location.watchPositionAsync(
@@ -439,7 +451,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const location = await Location.getCurrentPositionAsync();
       
       const update: CrawlUpdate = {
-        id: `update_${Date.now()}`,
+        id: Crypto.randomUUID(),
         photoUri,
         drinkType,
         timestamp: Date.now(),
@@ -542,7 +554,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: Date.now(),
     };
 
-    // Add to user's crawls
+    // Upload to Supabase (fire and forget - don't block UI)
+    uploadCrawlToSupabase(crawl)
+      .then(() => console.log('[AppContext] Crawl uploaded to Supabase'))
+      .catch((error) => console.error('[AppContext] Failed to upload crawl to Supabase:', error));
+
+    // Add to user's crawls (local state)
     setCurrentUser((prev) => {
       if (!prev) return null;
       return {
@@ -551,7 +568,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    // Add to feed
+    // Add to feed (local state)
     const post: Post = {
       id: `post_${Date.now()}`,
       crawl,
@@ -566,7 +583,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // After posting, bring user back to Feed tab (top post is theirs).
     setPostUploadNavigateToFeed(true);
-    
+
     // End crawl after upload
     endCrawl();
   }, [activeCrawl, currentUser, calculateDistance, endCrawl]);
