@@ -51,9 +51,11 @@ export default function TabLayout() {
   // After uploading (from tap-out or timeout), ensure we land on Feed tab.
   useEffect(() => {
     if (!postUploadNavigateToFeed) return;
+    // Don't navigate while still on the review modal - let it dismiss first
+    if (pathname === '/crawl-review') return;
     // If we're currently showing the review modal, this will run after it dismisses.
     if (pathname !== '/(tabs)/index') {
-      router.replace('/(tabs)/index');
+      router.replace('/(tabs)' as any);
     }
     clearPostUploadNavigateToFeed();
   }, [clearPostUploadNavigateToFeed, pathname, postUploadNavigateToFeed, router]);

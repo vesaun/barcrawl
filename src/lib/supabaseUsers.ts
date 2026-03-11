@@ -13,6 +13,7 @@ export const upsertUserProfile = async (supabaseUser: SupabaseUser): Promise<Use
     // 1. Prepare data (Removed stats fields to prevent overwriting progress)
     const userData = {
       id: supabaseUser.id,
+      auth_id: supabaseUser.id, // Add auth_id to match RLS policy
       username: supabaseUser.user_metadata?.username || supabaseUser.email?.split('@')[0] || 'user',
       display_name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || 'User',
       age: supabaseUser.user_metadata?.age || 21,
@@ -21,7 +22,7 @@ export const upsertUserProfile = async (supabaseUser: SupabaseUser): Promise<Use
       profile_picture_url: supabaseUser.user_metadata?.avatar_url || supabaseUser.user_metadata?.picture,
       bio: supabaseUser.user_metadata?.description || null,
       updated_at: new Date().toISOString(),
-      // REMOVED: total_drinks, total_crawls, etc. 
+      // REMOVED: total_drinks, total_crawls, etc.
       // Let the database defaults handle these!
     };
 
